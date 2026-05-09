@@ -17,7 +17,7 @@ ESPHome Konfigurationen für meine Smart Home Projekte aus dem YouTube Kanal **C
 
 ### Home Assistant Battery Card
 - **Typ:** Lovelace Custom Card für Batterie-SOC mit Lade-/Entladebalken
-- **Video:** [Coming Soon]()
+- **Video:** https://youtube.com/shorts/lcRq-HvQT7c
 - **Files:** `home-assistant/battery-card/`
 
 ## 🚀 Quick Start

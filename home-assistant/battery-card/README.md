@@ -2,7 +2,7 @@
 
 Custom Lovelace card for Home Assistant that shows a battery state of charge with two vertical activity bars for charging and discharging.
 
-- **Video:** [Coming Soon]()
+- **Video:** https://youtube.com/shorts/lcRq-HvQT7c
 - **File:** `battery-card.js`
 
 ![Battery Card Placeholder](https://img.shields.io/badge/Home%20Assistant-Custom%20Card-41BDF5)
