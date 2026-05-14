@@ -56,7 +56,7 @@ Custom Lovelace card for Home Assistant that shows a battery state of charge wit
 | `discharge_scale` | no | `{min: 0, max: 4, steps: 4, mode: "linear"}` | Scaling for the discharging bar. |
 | `color_stops` | no | see below | SOC color thresholds. |
 | `min_height` | no | `90` | Minimum card height in px for responsive layout. |
-| `bar_width` | no | `15` | Width of both vertical bars in px. |
+| `bar_width` | no | `14` | Width of both vertical bars in px. |
 | `icon_size` | no | responsive | Fixed icon size in px. Leave unset for automatic scaling. |
 | `value_size` | no | responsive | Fixed percentage text size in px. Leave unset for automatic scaling. |
 | `show_zero_bars` | no | `false` | Keep empty bars visible even when the value is zero. |

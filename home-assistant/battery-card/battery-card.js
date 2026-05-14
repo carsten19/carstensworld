@@ -30,7 +30,7 @@ class BatteryCard extends HTMLElement {
       min_height: 90,
       icon_size: undefined,
       value_size: undefined,
-      bar_width: 15,
+      bar_width: 14,
       show_zero_bars: false,
       ...config,
     };
@@ -70,7 +70,7 @@ class BatteryCard extends HTMLElement {
 
     const card = this.querySelector("ha-card");
     card.style.setProperty("--battery-card-min-height", `${Number(this.config.min_height) || 90}px`);
-    card.style.setProperty("--battery-card-bar-width", `${Number(this.config.bar_width) || 15}px`);
+    card.style.setProperty("--battery-card-bar-width", `${Number(this.config.bar_width) || 14}px`);
     if (this.config.icon_size) card.style.setProperty("--battery-card-icon-size", `${Number(this.config.icon_size)}px`);
     if (this.config.value_size) card.style.setProperty("--battery-card-value-size", `${Number(this.config.value_size)}px`);
 
@@ -98,10 +98,10 @@ class BatteryCard extends HTMLElement {
         flex: 1;
         min-height: 0;
         display: grid;
-        grid-template-columns: var(--battery-card-bar-width) auto var(--battery-card-bar-width) minmax(2.2em, auto);
+        grid-template-columns: var(--battery-card-bar-width) auto var(--battery-card-bar-width) max-content;
         align-items: center;
         justify-content: center;
-        gap: clamp(6px, 2.5cqw, 16px);
+        column-gap: clamp(2px, 1.2cqw, 8px);
         container-type: size;
       }
       .battery-card__bar {
@@ -126,6 +126,8 @@ class BatteryCard extends HTMLElement {
         background: var(--battery-card-charge-color, #26a62a);
       }
       .battery-card__bar--discharge .battery-card__bar-fill {
+        top: 0;
+        bottom: auto;
         background: var(--battery-card-discharge-color, #bd20ad);
       }
       .battery-card__icon {
@@ -135,7 +137,8 @@ class BatteryCard extends HTMLElement {
       .battery-card__value {
         text-align: center;
         white-space: nowrap;
-        font-size: var(--battery-card-value-size, clamp(1.7rem, 36cqh, 3rem));
+        margin-left: clamp(3px, 1.5cqw, 10px);
+        font-size: var(--battery-card-value-size, clamp(2rem, 42cqh, 3.5rem));
         line-height: 1;
         font-weight: var(--tile-info-primary-font-weight, 600);
         color: var(--tile-info-primary-color, var(--primary-text-color));
