@@ -5,6 +5,7 @@ substitutions:
 
 esphome:
   name: ${name}
+  min_version: 2026.1.0
   name_add_mac_suffix: false
   friendly_name: ${friendly_name}
 
@@ -93,7 +94,8 @@ remote_transmitter:
   carrier_duty_percent: 50%
   non_blocking: true
 
-# Infrared platform - creates infrared entities.
+# IR/RF proxy support was introduced in ESPHome 2026.1.0.
+# Home Assistant's standardized infrared integrations may require HA 2026.4+.
 infrared:
   - platform: ir_rf_proxy
     name: IR Transmitter

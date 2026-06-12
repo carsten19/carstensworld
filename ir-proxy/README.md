@@ -13,6 +13,11 @@ ESPHome Beispielkonfiguration für einen M5Stack Atom Echo als Infrarot-Proxy in
 - IR-Receiver auf `GPIO32`
 - interne Status-LED auf `GPIO27`
 
+## Voraussetzungen
+
+- ESPHome `2026.1.0` oder neuer für die `ir_rf_proxy`-Plattform
+- Home Assistant `2026.4` oder neuer, wenn die neuen standardisierten Infrared-Integrationen genutzt werden sollen
+
 ## Dateien
 
 - `m5stack-atom-echo-ir-proxy.yaml` - ESPHome-Konfiguration
@@ -40,5 +45,6 @@ Damit können IR-Codes aus Home Assistant heraus an Geräte wie Fernseher, Recei
 ## Hinweise
 
 - `remote_receiver.dump: all` ist zum Anlernen praktisch, erzeugt aber viele Logs. Für den Dauerbetrieb kann man gezielt nur die benötigten Protokolle dumpen oder das Dumping reduzieren.
-- Die `infrared`-Plattform mit `ir_rf_proxy` muss von deiner ESPHome-Installation unterstützt werden. Falls die Konfiguration nicht kompiliert, prüfe zuerst ESPHome-Version und benötigte Komponenten.
+- Die `infrared`-Plattform mit `ir_rf_proxy` wurde in ESPHome 2026.1.0 eingeführt und war zu Beginn als experimentell markiert. Falls die Konfiguration nicht kompiliert, prüfe zuerst die ESPHome-Version.
+- RF-Erweiterungen rund um `radio_frequency` kamen später dazu. Diese Beispielkonfiguration nutzt nur den Infrarot-Teil.
 - Der M5Stack Atom Echo ist hier als kompakter IR-Proxy gedacht. Für hohe Reichweite oder schwierige Räume kann eine externe IR-LED bzw. ein stärkerer Sender nötig sein.
