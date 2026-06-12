@@ -15,6 +15,12 @@ ESPHome Konfigurationen für meine Smart Home Projekte aus dem YouTube Kanal **C
 - **Video:** https://youtu.be/-BWdE85hcqw
 - **Files:** `eink-display/`
 
+### M5Stack Atom Echo IR Proxy
+- **Hardware:** M5Stack Atom Echo
+- **Video:** TODO - Link zum Video ergänzen
+- **Files:** `ir-proxy/`
+- **Beschreibung:** ESPHome-Konfiguration für einen kompakten IR-Proxy mit Home-Assistant-Actions zum Senden von Pronto-, NEC-, Panasonic- und Sony-IR-Codes.
+
 ### Home Assistant Battery Card
 - **Typ:** Lovelace Custom Card für Batterie-SOC mit Lade-/Entladebalken
 - **Video:** https://youtube.com/shorts/lcRq-HvQT7c
