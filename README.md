@@ -22,6 +22,12 @@ ESPHome Konfigurationen für meine Smart Home Projekte aus dem YouTube Kanal **C
 - **ESPHome:** 2026.1.0 oder neuer
 - **Beschreibung:** ESPHome-Konfiguration für einen kompakten IR-Proxy mit Home-Assistant-Actions zum Senden von Pronto-, NEC-, Panasonic- und Sony-IR-Codes.
 
+### Xiao ESP32-C6 SHTC3 Gehäuse
+- **Hardware:** Seeed Studio Xiao ESP32-C6 + SHTC3 Temperatur-/Feuchtigkeitssensor
+- **Video:** https://youtu.be/xsSsGEaRrT0
+- **Files:** `xiao-esp32-c6-shtc3-case/`
+- **Beschreibung:** STL-Datei für ein 3D-druckbares Gehäuse zum ESP32-Temperatursensor-Projekt.
+
 ### Home Assistant Battery Card
 - **Typ:** Lovelace Custom Card für Batterie-SOC mit Lade-/Entladebalken
 - **Video:** https://youtube.com/shorts/lcRq-HvQT7c
