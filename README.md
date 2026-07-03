@@ -1,6 +1,6 @@
-# ESPHome Configs
+# Home Assistant und ESPHome Configs
 
-ESPHome Konfigurationen für meine Smart Home Projekte aus dem YouTube Kanal **Carsten's World**.
+Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus dem YouTube Kanal **Carsten's World**.
 
 ## 📁 Projekte
 
@@ -35,7 +35,7 @@ ESPHome Konfigurationen für meine Smart Home Projekte aus dem YouTube Kanal **C
 
 ### Home Assistant Dashboard
 - **Typ:** Anonymisierte Lovelace-Beispielkonfiguration für den Home-Tab
-- **Video:** TODO - Link zum Video ergänzen
+- **Video:** https://youtu.be/GuiE_T9ik78
 - **Files:** `home-assistant-dashboard/`
 - **Beschreibung:** Beispiel-Dashboard mit Energie-, Wetter-, Auto-, Kalender- und Status-Kacheln. Entity-IDs, User-IDs und Hintergrundbild sind anonymisiert und müssen an das eigene Home-Assistant-Setup angepasst werden.
 
