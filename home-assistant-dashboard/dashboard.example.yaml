@@ -1,0 +1,665 @@
+# Home Assistant dashboard example
+#
+# This is an anonymized Lovelace dashboard exported from Home Assistant.
+# Replace all example entity IDs, user IDs and local image paths with values from your own setup.
+
+title: Home
+views:
+  - type: sections
+    max_columns: 4
+    title: Home
+    path: home
+    sections:
+      - type: grid
+        cards:
+          - type: picture-elements
+            elements:
+              - type: state-label
+                entity: sensor.time
+                style:
+                  font-size: 1600%
+                  font-weight: bold
+                  left: 50%
+                  top: 50%
+                tap_action:
+                  action: none
+                hold_action:
+                  action: none
+            grid_options:
+              columns: 24
+              rows: 4
+            image: /local/dashboard/background.png
+            dark_mode_image: /local/dashboard/background.png
+            card_mod:
+              style: |
+                ha-card {
+                    border: solid 2px white;
+                }    
+          - type: custom:battery-card
+            batterysoc: sensor.home_battery_state_of_charge
+            charging: sensor.home_battery_charging_power_kw
+            discharging: sensor.home_battery_discharging_power_kw
+            grid_options:
+              columns: 8
+              rows: 3
+            label: Batterie
+          - type: tile
+            entity: sensor.solar_generation_power_kw
+            features_position: bottom
+            vertical: false
+            name: PV
+            grid_options:
+              columns: 8
+              rows: 3
+            color: green
+            icon: mdi:solar-power-variant
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    font-size: 80pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 60px;
+                    height: 70px;
+                    width: 60px;        
+                  }
+                .: |
+                  ha-card {
+                    {% if states('sensor.grid_export_power')|float(0) > 100 %}
+                    --card-mod-icon: mdi:transmission-tower-import;
+                    {% else %}
+                    --card-mod-icon: mdi:solar-power-variant;
+                    {% endif %}
+                  }
+          - type: tile
+            entity: sensor.house_consumption_power_kw
+            features_position: bottom
+            vertical: false
+            name: Verbrauch
+            grid_options:
+              columns: 8
+              rows: 3
+            color: orange
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    {% if states('sensor.house_consumption_power_kw') | float(0) >= 10 %}
+                      font-size: 60pt !important;
+                    {% else %}
+                      font-size: 80pt !important;
+                    {% endif %}  
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 60px;
+                    height: 60px;
+                    width: 60px;             
+                  }
+                .: |
+                  ha-card {
+                    {% if states('sensor.house_consumption_power_kw') | float(0) >= 10 %}
+                      border: solid 2px orange;
+                    {% endif %}
+                  }   
+          - type: tile
+            grid_options:
+              columns: 8
+              rows: 2
+            entity: cover.garage_door
+            name: Garagentor
+            hide_state: false
+            state_content: state
+            vertical: false
+            features_position: bottom
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    font-size: 20pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 60px;
+                    height: 60px;
+                    width: 50px;        
+                  }
+          - type: tile
+            entity: sensor.solar_energy_today
+            features_position: bottom
+            vertical: false
+            name: PV Heute
+            grid_options:
+              columns: 8
+              rows: 2
+            tap_action:
+              action: navigate
+              navigation_path: /dashboard-dashboard/pv
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    font-size: 30pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 40px;
+                    height: 45px;
+                    width: 40px;        
+                  }
+          - type: tile
+            grid_options:
+              columns: 8
+              rows: 2
+            entity: sensor.ev_vehicle_soc
+            name: Auto
+            vertical: false
+            features_position: bottom
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .primary {
+                    font-size: 0 !important;
+                  }
+                  .primary:after {
+                    content: "{{(state_attr('select.ev_vehicle_name', 'vehicle') or {}).get('name', 'Auto')}}";
+                    font-size: 16px !important;
+                  }      
+                  .secondary { 
+                    font-size: 30pt !important;
+                  }
+                  .secondary:after {
+                    {% if states('sensor.wallbox_charging_power_kw')|float(0) > 0 %}
+                    font-size: 14pt !important;
+                    color: #c9bd45;       
+                    content: "{{ states('sensor.wallbox_charging_power_kw') }} kW";        
+                    visibility: visible;        
+                    {% endif %}
+                  }      
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 50px;        
+                    height: 50px;
+                    width: 55px;
+                    {% if states('sensor.ev_vehicle_soc')|float(0) < 10 %}        
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-10;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-10;
+                      {% endif %}
+                      --card-mod-icon-color: #d12815;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) == 100 %}
+                      --card-mod-icon: mdi:battery;
+                      --card-mod-icon-color: #24b548;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 90 %}        
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-90;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-90;
+                      {% endif %}      
+                      --card-mod-icon-color: #24b548;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 80 %}        
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-80;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-80;
+                      {% endif %}        
+                      --card-mod-icon-color: #24b548;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 70 %}        
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-70;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-70;
+                      {% endif %}    
+                      --card-mod-icon-color: #24b548;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 60 %}
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-60;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-60;
+                      {% endif %}           
+                      --card-mod-icon-color: #cbd419;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 50 %}
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-50;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-50;
+                      {% endif %}                
+                      --card-mod-icon-color: #cbd419;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 40 %}
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-40;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-40;
+                      {% endif %}      
+                      --card-mod-icon-color: #f0b40e;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 30 %}
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-30;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-30;
+                      {% endif %}         
+                      --card-mod-icon-color: #f0b40e;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 20 %}
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-20;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-20;
+                      {% endif %}        
+                      --card-mod-icon-color: #f0b40e;
+                    {% elif states('sensor.ev_vehicle_soc')|float(0) >= 10 %}
+                      {% if states('sensor.wallbox_phase_power')|float(0) > 0 %}
+                      --card-mod-icon: mdi:battery-charging-10;
+                      {% else %}
+                      --card-mod-icon: mdi:battery-10;
+                      {% endif %}     
+                      --card-mod-icon-color: #d12815;
+                    {% else %}
+                    --card-mod-icon: mdi:battery-unknown;
+                    {% endif %} 
+                    {% if states('sensor.ev_vehicle_limit_soc')|float(0) > 0 and states('sensor.ev_vehicle_soc')|float(0) == states('sensor.ev_vehicle_limit_soc')|float(0) %}
+                    animation: pulse 5s linear infinite;
+                    {% endif %}
+                  }
+                  @keyframes pulse {
+                    0%, 50%, 100% { opacity: 1; }
+                    25%, 75% { opacity: 0; }
+                  }      
+            visibility:
+              - condition: state
+                entity: binary_sensor.ev_connected
+                state: "on"
+          - type: tile
+            grid_options:
+              columns: 8
+              rows: 2
+            entity: sensor.solar_energy_month
+            name: PV Monat
+            icon: mdi:calendar
+            vertical: false
+            features_position: bottom
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    font-size: 30pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 40px;
+                    height: 45px;
+                    width: 40px;        
+                  }
+            visibility:
+              - condition: state
+                entity: input_text.dashboard_information
+                state: unknown
+              - condition: state
+                entity: input_text.dashboard_warning
+                state: unknown
+              - condition: state
+                entity: switch.garden_irrigation_zone_1
+                state: "off"
+              - condition: state
+                entity: switch.garden_irrigation_zone_2
+                state: "off"
+          - type: tile
+            grid_options:
+              columns: 8
+              rows: 2
+            entity: select.wallbox_charging_mode
+            name: Wallbox
+            vertical: false
+            features_position: bottom
+            visibility:
+              - condition: state
+                entity: input_text.dashboard_information
+                state: unknown
+              - condition: state
+                entity: input_text.dashboard_warning
+                state: unknown
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    font-size: 30pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 40px;
+                    height: 40px;
+                    width: 45px;        
+                  }
+          - type: tile
+            grid_options:
+              columns: 8
+              rows: 2
+            visibility:
+              - condition: state
+                entity: switch.garden_irrigation_zone_1
+                state: "on"
+              - condition: state
+                entity: input_text.dashboard_information
+                state: unknown
+              - condition: state
+                entity: input_text.dashboard_warning
+                state: unknown
+            entity: switch.garden_irrigation_zone_1
+            name: Bewässerung
+            icon: mdi:flower-outline
+            color: green
+            hide_state: true
+            vertical: false
+            tap_action:
+              action: toggle
+            icon_tap_action:
+              action: none
+            features_position: bottom
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .primary { 
+                    font-size: 16pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 40px;
+                    height: 40px;
+                    width: 40px;        
+                  }
+          - type: tile
+            grid_options:
+              columns: 8
+              rows: 2
+            visibility:
+              - condition: state
+                entity: switch.garden_irrigation_zone_2
+                state: "on"
+              - condition: state
+                entity: input_text.dashboard_information
+                state: unknown
+              - condition: state
+                entity: input_text.dashboard_warning
+                state: unknown
+            entity: switch.garden_irrigation_zone_2
+            name: Bewässerung
+            icon: mdi:grass
+            color: green
+            hide_state: true
+            vertical: false
+            tap_action:
+              action: toggle
+            icon_tap_action:
+              action: none
+            features_position: bottom
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .primary { 
+                    font-size: 16pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 40px;
+                    height: 40px;
+                    width: 40px;        
+                  }
+          - type: tile
+            visibility:
+              - condition: state
+                entity: calendar.waste_collection
+                state: "on"
+              - condition: time
+                after: "00:00:00"
+                before: "10:00:00"
+              - condition: state
+                entity: input_text.dashboard_information
+                state: unknown
+              - condition: state
+                entity: input_text.dashboard_warning
+                state: unknown
+            entity: calendar.waste_collection
+            icon: mdi:trash-can
+            hide_state: false
+            state_content: message
+            vertical: false
+            features_position: bottom
+            grid_options:
+              columns: 8
+              rows: 2
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    font-size: 20pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 40px;
+                    height: 40px;
+                    width: 40px;        
+                  }
+          - type: custom:dual-ev-battery-card
+            entities:
+              - sensor.ev_1_battery_level
+              - sensor.ev_2_battery_level
+            charging_entities:
+              - sensor.ev_1_charging_power
+              - sensor.ev_2_charging_power
+            grid_options:
+              columns: 8
+              rows: 2
+            visibility:
+              - condition: state
+                entity: input_text.dashboard_information
+                state: unknown
+              - condition: state
+                entity: input_text.dashboard_warning
+                state: unknown
+              - condition: user
+                users:
+                  - USER_ID_ADMIN
+          - type: tile
+            grid_options:
+              columns: full
+              rows: 2
+            visibility:
+              - condition: state
+                entity: input_text.dashboard_information
+                state_not: unknown
+              - condition: state
+                entity: input_text.dashboard_warning
+                state: unknown
+            entity: input_text.dashboard_information
+            name: Information
+            hide_state: false
+            vertical: false
+            tap_action:
+              action: perform-action
+              perform_action: timer.finish
+              target:
+                entity_id: timer.dashboard_information_reset
+            features_position: bottom
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    font-size: 30pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 40px;
+                    height: 40px;
+                    width: 40px;        
+                  }
+          - type: tile
+            entity: input_text.dashboard_warning
+            features_position: bottom
+            vertical: false
+            hide_state: false
+            name: Warnung
+            grid_options:
+              columns: full
+              rows: 2
+            visibility:
+              - condition: state
+                entity: input_text.dashboard_warning
+                state_not: unknown
+            color: red
+            tap_action:
+              action: navigate
+              navigation_path: /dashboard-dashboard/outdoor
+            card_mod:
+              style:
+                ha-tile-info $: |
+                  .secondary { 
+                    font-size: 30pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 40px;
+                    height: 40px;
+                    width: 40px; 
+                  }
+                .: |
+                  ha-card {
+                    background: rgba(255,128,0,0.3);
+                    {% if state_attr('sensor.local_weather_warning_level','warning_1_level') | float(0) > 2 %}
+                      border: solid 2px red;
+                    {% endif %}
+                  }
+        column_span: 2
+      - type: grid
+        cards:
+          - type: tile
+            grid_options:
+              columns: 12
+              rows: 4
+            entity: sensor.outdoor_temperature
+            name: Außen
+            icon: mdi:leaf
+            color: green
+            show_entity_picture: false
+            hide_state: false
+            vertical: true
+            tap_action:
+              action: navigate
+              navigation_path: /dashboard-dashboard/outdoor
+            features_position: bottom
+            card_mod:
+              style:
+                ha-tile-info$: >
+                  .secondary { 
+
+                  {% if states('sensor.outdoor_temperature') | float(0) < -9.9
+                  %}
+                    font-size: 65pt !important;
+                  {% else %}
+                    font-size: 75pt !important;
+                  {% endif %}
+
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 70px;
+                    height: 70px;
+                    width: 70px;
+                    {% if states('sensor.rain_rate') | float(0) > 0 %}
+                    --card-mod-icon: mdi:weather-rainy;
+                    animation: boing 3s linear infinite; transform-origin: 50% 90%;
+                    {% elif states('sensor.outdoor_temperature') | float(0) <= 0 %}
+                    --card-mod-icon: mdi:snowflake;
+                    animation: rotation 10s linear infinite;
+                    {% elif states('sensor.outdoor_temperature') | float(0) > 28 %}
+                    --card-mod-icon: mdi:fire;
+                    animation: pulse 3s linear infinite; transform-origin: 50% 60%;        
+                    {% else %}
+                    --card-mod-icon: mdi:leaf;
+                    {% endif %}                 
+                  }
+                  @keyframes pulse {
+                    0% { transform: scale(1); }
+                    10% { transform: scale(1.1); }
+                    17% { transform: scale(1.17); }
+                    33% { transform: scale(1.25); }
+                    60% { transform: scale(1); }
+                  }
+                  @keyframes boing {
+                    0% { transform: scale3d(1,1,1); }
+                    7% { transform: scale3d(1.25,0.75,1); }
+                    10% { transform: scale3d(0.75,1.25,1); }
+                    12% { transform: scale3d(1.15,0.85,1); }
+                    16% { transform: scale3d(0.95,1.05,1); }
+                    19% { transform: scale3d(1.05,0.95,1); }
+                    25% { transform: scale3d(1,1,1); }        
+                  }
+                  @keyframes rotation {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                .: |
+                  ha-card {
+                    {% if states('sensor.outdoor_temperature') | float(0) < -9 %}
+                      border: solid 2px blue;
+                    {% elif states('sensor.outdoor_temperature') | float(0) > 30 %}
+                      border: solid 2px red;
+                    {% elif states('sensor.outdoor_temperature') | float(0) > 28 %}
+                      border: solid 2px orange;          
+                    {% else %}
+                      border: none;
+                    {% endif %}       
+                  }     
+          - type: tile
+            grid_options:
+              columns: 12
+              rows: 4
+            entity: sensor.living_room_temperature
+            name:
+              type: area
+            vertical: true
+            tap_action:
+              action: navigate
+              navigation_path: /dashboard-dashboard/indoor
+            features_position: bottom
+            card_mod:
+              style:
+                ha-tile-info$: |
+                  .secondary { 
+                    font-size: 75pt !important;
+                  }
+                ha-tile-icon $: |
+                  div.container {
+                    --mdc-icon-size: 70px;
+                    height: 70px;
+                    width: 70px;        
+                  }
+                .: |
+                  ha-card {
+                    {% if states('sensor.living_room_temperature') | float(0) >= 26 %}
+                      border: solid 2px orange;
+                    {% elif states('sensor.living_room_temperature') | float(0) < 22 %}
+                      border: solid 2px blue;   
+                    {% else %}
+                      border: none;          
+                    {% endif %}
+                  }          
+          - show_current: false
+            show_forecast: true
+            type: weather-forecast
+            entity: weather.home
+            forecast_type: daily
+        column_span: 1
+    header: {}
+    badges: []
+    visible:
+      - user: USER_ID_ADMIN
+      - user: USER_ID_TABLET
+    cards: []
+    background:
+      opacity: 33
+      alignment: center
+      size: cover
+      repeat: repeat
+      attachment: fixed

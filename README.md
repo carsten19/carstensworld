@@ -33,6 +33,12 @@ ESPHome Konfigurationen für meine Smart Home Projekte aus dem YouTube Kanal **C
 - **Video:** https://youtube.com/shorts/lcRq-HvQT7c
 - **Files:** `home-assistant/battery-card/`
 
+### Home Assistant Dashboard
+- **Typ:** Anonymisierte Lovelace-Beispielkonfiguration für den Home-Tab
+- **Video:** TODO - Link zum Video ergänzen
+- **Files:** `home-assistant-dashboard/`
+- **Beschreibung:** Beispiel-Dashboard mit Energie-, Wetter-, Auto-, Kalender- und Status-Kacheln. Entity-IDs, User-IDs und Hintergrundbild sind anonymisiert und müssen an das eigene Home-Assistant-Setup angepasst werden.
+
 ## 🚀 Quick Start
 
 1. **Repository klonen:**
