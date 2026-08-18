@@ -1,0 +1,53 @@
+# Home Assistant template cover for a garage door
+#
+# Replace these example entities with the entities from your own setup:
+# - switch.garage_door_relay
+# - binary_sensor.garage_door_closed_contact
+# - binary_sensor.garage_door_open_contact
+
+template:
+  - cover:
+      - device_class: garage
+        name: "Garage Door"
+        unique_id: garage_door
+        default_entity_id: cover.garage_door
+
+        open_cover:
+          action: switch.turn_on
+          data:
+            entity_id: switch.garage_door_relay
+
+        close_cover:
+          action: switch.turn_on
+          data:
+            entity_id: switch.garage_door_relay
+
+        stop_cover:
+          action: switch.turn_on
+          data:
+            entity_id: switch.garage_door_relay
+
+        icon: >-
+          {% if is_state('binary_sensor.garage_door_closed_contact', 'off')
+                and is_state('binary_sensor.garage_door_open_contact', 'on') %}
+            mdi:garage
+          {% else %}
+            mdi:garage-open
+          {% endif %}
+
+        state: >-
+          {% set prev = states('cover.garage_door') %}
+          {% if (prev == 'closed' or prev == 'opening')
+                and is_state('binary_sensor.garage_door_closed_contact', 'on')
+                and is_state('binary_sensor.garage_door_open_contact', 'on') %}
+            opening
+          {% elif (prev == 'open' or prev == 'closing')
+                and is_state('binary_sensor.garage_door_closed_contact', 'on')
+                and is_state('binary_sensor.garage_door_open_contact', 'on') %}
+            closing
+          {% elif is_state('binary_sensor.garage_door_closed_contact', 'off')
+                and is_state('binary_sensor.garage_door_open_contact', 'on') %}
+            closed
+          {% else %}
+            open
+          {% endif %}
