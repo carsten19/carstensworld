@@ -1,0 +1,25 @@
+# Home Assistant Dashboard-Karte für ein Garagentor
+# Voraussetzung für die Größenanpassungen: HACS-Erweiterung "card-mod"
+
+type: tile
+grid_options:
+  columns: 8
+  rows: 2
+entity: cover.garage_door
+name: Garagentor
+hide_state: false
+state_content: state
+vertical: false
+features_position: bottom
+card_mod:
+  style:
+    ha-tile-info$: |
+      .secondary {
+        font-size: 20pt !important;
+      }
+    ha-tile-icon $: |
+      div.container {
+        --mdc-icon-size: 60px;
+        height: 60px;
+        width: 50px;
+      }
