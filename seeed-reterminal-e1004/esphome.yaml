@@ -1,0 +1,920 @@
+# Seeed Studio reTerminal E1004: three-page LVGL picture frame
+# Requires ESPHome 2026.7.0 or newer.
+#
+# Public example configuration. Credentials and the image URL are loaded from
+# secrets.yaml. The imported Home Assistant entity IDs match the companion
+# home-assistant-templates.yaml example.
+#
+# GPIO3 (right arrow): AI image explanation
+# GPIO4 (left arrow):  weather dashboard
+# GPIO5 (refresh):     generated AI image
+# All three buttons wake the device from its four-hour deep-sleep cycle.
+#
+# Companion Home Assistant template entities are defined in:
+# ha-picture-frame-weather-template.yaml
+
+substitutions:
+  device_name: seeed-e1004
+  friendly_name: "Picture Frame"
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  on_boot:
+    priority: -100
+    then:
+      - output.turn_on: battery_measurement_enable
+      - delay: 200ms
+      - component.update: environment_sensor
+      - component.update: battery_voltage
+      - component.update: battery_level
+
+esp32:
+  board: seeed_xiao_esp32s3
+  # LVGL must copy and quantize almost 1.9 million pixels into the six-colour
+  # ePaper framebuffer. The ESPHome default of 5s is too short for this pass.
+  watchdog_timeout: 60s
+  # The reTerminal E-Series carries 32 MB flash. Declaring it avoids the
+  # cramped default 4 MB partition layout (this build otherwise uses 98.9%).
+  flash_size: 32MB
+  framework:
+    type: esp-idf
+    advanced:
+      # Required by ESPHome for OTA partitioning above 16 MB.
+      enable_idf_experimental_features: true
+    sdkconfig_options:
+      CONFIG_ESP_CONSOLE_UART_NUM: "0"
+      CONFIG_ESP_CONSOLE_UART_TX_GPIO: "43"
+      CONFIG_ESP_CONSOLE_UART_RX_GPIO: "44"
+
+psram:
+  mode: octal
+
+globals:
+  # 0 = timer/cold boot, 1 = explanation, 2 = weather, 3 = AI image.
+  # The per-pin deep-sleep wake triggers set this before on_boot runs.
+  - id: requested_page
+    type: uint8_t
+    restore_value: false
+    initial_value: "0"
+
+  # Prevent reconnects from starting the initial render more than once.
+  - id: boot_render_started
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+  # The wake-up key press is still present while components are starting.
+  # Ignore normal on_press handlers until the first page has been dispatched.
+  - id: controls_ready
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+logger:
+  hardware_uart: UART0
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+  on_client_connected:
+    then:
+      # Home Assistant publishes the imported text sensors after connecting.
+      - if:
+          condition:
+            lambda: |-
+              return id(requested_page) == 1 && !id(boot_render_started);
+          then:
+            - lambda: id(boot_render_started) = true;
+            - wait_until:
+                condition:
+                  lambda: return id(ai_picture_description).has_state();
+                timeout: 20s
+            - script.execute: show_explanation
+      - if:
+          condition:
+            lambda: |-
+              return id(requested_page) == 2 && !id(boot_render_started);
+          then:
+            - lambda: id(boot_render_started) = true;
+            - wait_until:
+                condition:
+                  lambda: |-
+                    return id(weather_overview).has_state() &&
+                           id(weather_metrics).has_state() &&
+                           id(forecast_0).has_state() &&
+                           id(forecast_1).has_state() &&
+                           id(forecast_2).has_state() &&
+                           id(forecast_3).has_state() &&
+                           id(forecast_4).has_state() &&
+                           id(forecast_5).has_state() &&
+                           id(forecast_6).has_state();
+                timeout: 20s
+            - script.execute: show_weather
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Seeed-E1004-Fallback"
+    password: !secret fallback_ap_password
+  on_connect:
+    then:
+      # Timer/cold boot and the refresh key download the image. Direction-key
+      # wakeups wait for Home Assistant and render their LVGL text page instead.
+      - if:
+          condition:
+            lambda: |-
+              return (id(requested_page) == 0 || id(requested_page) == 3) &&
+                     !id(boot_render_started);
+          then:
+            - lambda: id(boot_render_started) = true;
+            # The ePaper framebuffer already contains the previous picture.
+            # Release any retained decoder buffer before allocating the next one.
+            - online_image.release: daily_ai_image
+            # The decoder target is slightly smaller than the physical panel;
+            # see the online_image memory note below.
+            - component.update: daily_ai_image
+
+captive_portal:
+
+http_request:
+  timeout: 30s
+  watchdog_timeout: 40s
+
+spi:
+  id: epaper_spi_bus
+  clk_pin: GPIO7
+  mosi_pin: GPIO9
+  miso_pin: GPIO8
+
+i2c:
+  sda: GPIO19
+  scl: GPIO20
+  scan: true
+
+output:
+  - platform: gpio
+    pin: GPIO21
+    id: battery_measurement_enable
+
+  - platform: ledc
+    pin: GPIO45
+    id: buzzer_pwm
+    frequency: 1000Hz
+
+light:
+  - platform: monochromatic
+    id: buzzer
+    name: "Buzzer"
+    output: buzzer_pwm
+    internal: true
+    default_transition_length: 0s
+
+script:
+  - id: key_beep
+    mode: restart
+    then:
+      - light.turn_on:
+          id: buzzer
+          brightness: 50%
+      - delay: 100ms
+      - light.turn_off: buzzer
+
+  - id: show_explanation
+    mode: restart
+    then:
+      - lambda: id(requested_page) = 1;
+      - script.execute: key_beep
+      # Finish the 100 ms beep before LVGL starts its long ePaper flush.
+      - script.wait: key_beep
+      - lvgl.label.update:
+          id: explanation_label
+          text: !lambda |-
+            if (id(ai_picture_description).has_state()) {
+              return id(ai_picture_description).state;
+            }
+            return std::string("Keine Erklärung verfügbar");
+      - lvgl.page.show: explanation_page
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+      - lambda: |-
+          id(boot_render_started) = true;
+          id(controls_ready) = true;
+
+  - id: show_weather
+    mode: restart
+    then:
+      - lambda: id(requested_page) = 2;
+      - script.execute: key_beep
+      - script.wait: key_beep
+      - lvgl.label.update:
+          id: weather_overview_label
+          text: !lambda |-
+            return id(weather_overview).has_state()
+              ? id(weather_overview).state
+              : std::string("Wetterdaten werden geladen ...");
+      - lvgl.label.update:
+          id: weather_metrics_label
+          text: !lambda |-
+            return id(weather_metrics).has_state()
+              ? id(weather_metrics).state
+              : std::string("Noch keine Messwerte");
+      - lvgl.label.update:
+          id: forecast_0_label
+          text: !lambda return id(forecast_0).state;
+      - lvgl.label.update:
+          id: forecast_1_label
+          text: !lambda return id(forecast_1).state;
+      - lvgl.label.update:
+          id: forecast_2_label
+          text: !lambda return id(forecast_2).state;
+      - lvgl.label.update:
+          id: forecast_3_label
+          text: !lambda return id(forecast_3).state;
+      - lvgl.label.update:
+          id: forecast_4_label
+          text: !lambda return id(forecast_4).state;
+      - lvgl.label.update:
+          id: forecast_5_label
+          text: !lambda return id(forecast_5).state;
+      - lvgl.label.update:
+          id: forecast_6_label
+          text: !lambda return id(forecast_6).state;
+      - lvgl.label.update:
+          id: frame_status_label
+          text:
+            format: "FRAME  %.1f °C  ·  %.0f %% rF  ·  Akku %.0f %%"
+            args:
+              - id(temperature).state
+              - id(humidity).state
+              - id(battery_level).state
+      - lvgl.page.show: weather_page
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+      - lambda: |-
+          id(boot_render_started) = true;
+          id(controls_ready) = true;
+
+  - id: show_ai_image
+    mode: restart
+    then:
+      - lambda: id(requested_page) = 3;
+      - script.execute: key_beep
+      - script.wait: key_beep
+      - lambda: id(boot_render_started) = true;
+      - online_image.release: daily_ai_image
+      - component.update: daily_ai_image
+
+  # A full-screen image through LVGL blocks inside one refresh timer call while
+  # the E1004 driver quantizes almost 1.9 million pixels. Dither the decoded
+  # RGB565 image directly into the six-colour framebuffer, one row at a time,
+  # and feed/yield between rows.
+  - id: render_ai_image_direct
+    mode: restart
+    then:
+      - lvgl.pause:
+      - lambda: |-
+          auto *img = id(daily_ai_image);
+          auto *epd = id(epaper_display);
+          if (!img->is_loaded() || img->get_data_start() == nullptr) {
+            ESP_LOGE("picture_frame", "Downloaded image is not available");
+            id(boot_render_started) = false;
+            id(controls_ready) = true;
+            return;
+          }
+
+          const int width = img->get_width();
+          const int height = img->get_height();
+          const int x = (epd->get_width() - width) / 2;
+          const int y = (epd->get_height() - height) / 2;
+          const size_t stride = img->get_width_stride();
+          const uint8_t *data = img->get_data_start();
+
+          ESP_LOGI("picture_frame", "Dithering image directly: %dx%d at %d,%d", width, height, x, y);
+          epd->fill(Color(255, 255, 255));
+
+          // The exact logical colours understood by the T133A01 driver.
+          static constexpr uint8_t PALETTE[6][3] = {
+              {0, 0, 0},       // black
+              {255, 255, 255}, // white
+              {255, 0, 0},     // red
+              {255, 255, 0},   // yellow
+              {0, 255, 0},     // green
+              {0, 0, 255},     // blue
+          };
+
+          // Error values are stored multiplied by 16. Two rows per colour
+          // are sufficient for Floyd-Steinberg error diffusion.
+          std::vector<int16_t> current_r(width + 2, 0), current_g(width + 2, 0), current_b(width + 2, 0);
+          std::vector<int16_t> next_r(width + 2, 0), next_g(width + 2, 0), next_b(width + 2, 0);
+
+          for (int row = 0; row < height; row++) {
+            const uint8_t *src = data + row * stride;
+            for (int col = 0; col < width; col++) {
+              // online_image RGB565 uses little-endian byte order here.
+              const uint16_t rgb565 = static_cast<uint16_t>(src[col * 2]) |
+                                      (static_cast<uint16_t>(src[col * 2 + 1]) << 8);
+              int red = ((rgb565 >> 11) & 0x1F) * 255 / 31;
+              int green = ((rgb565 >> 5) & 0x3F) * 255 / 63;
+              int blue = (rgb565 & 0x1F) * 255 / 31;
+
+              red = std::clamp(red + current_r[col + 1] / 16, 0, 255);
+              green = std::clamp(green + current_g[col + 1] / 16, 0, 255);
+              blue = std::clamp(blue + current_b[col + 1] / 16, 0, 255);
+
+              int best = 0;
+              int best_distance = 200000;
+              for (int candidate = 0; candidate < 6; candidate++) {
+                const int dr = red - PALETTE[candidate][0];
+                const int dg = green - PALETTE[candidate][1];
+                const int db = blue - PALETTE[candidate][2];
+                const int distance = dr * dr + dg * dg + db * db;
+                if (distance < best_distance) {
+                  best_distance = distance;
+                  best = candidate;
+                }
+              }
+
+              const int quantized_r = PALETTE[best][0];
+              const int quantized_g = PALETTE[best][1];
+              const int quantized_b = PALETTE[best][2];
+              epd->draw_pixel_at(x + col, y + row, Color(quantized_r, quantized_g, quantized_b));
+
+              const int error_r = red - quantized_r;
+              const int error_g = green - quantized_g;
+              const int error_b = blue - quantized_b;
+
+              // Floyd-Steinberg: right 7/16; lower-left 3/16;
+              // lower 5/16; lower-right 1/16.
+              current_r[col + 2] += error_r * 7;
+              current_g[col + 2] += error_g * 7;
+              current_b[col + 2] += error_b * 7;
+              next_r[col] += error_r * 3;
+              next_g[col] += error_g * 3;
+              next_b[col] += error_b * 3;
+              next_r[col + 1] += error_r * 5;
+              next_g[col + 1] += error_g * 5;
+              next_b[col + 1] += error_b * 5;
+              next_r[col + 2] += error_r;
+              next_g[col + 2] += error_g;
+              next_b[col + 2] += error_b;
+            }
+
+            current_r.swap(next_r);
+            current_g.swap(next_g);
+            current_b.swap(next_b);
+            std::fill(next_r.begin(), next_r.end(), 0);
+            std::fill(next_g.begin(), next_g.end(), 0);
+            std::fill(next_b.begin(), next_b.end(), 0);
+            App.feed_wdt();
+            delay(1);
+          }
+      - component.update: epaper_display
+      - online_image.release: daily_ai_image
+      - lambda: |-
+          id(boot_render_started) = true;
+          id(controls_ready) = true;
+
+binary_sensor:
+  - platform: gpio
+    id: key_right
+    name: "Right Direction Button"
+    pin:
+      number: GPIO3
+      allow_other_uses: true
+      mode: INPUT
+      inverted: true
+    filters:
+      - delayed_on: 30ms
+      - delayed_off: 30ms
+    on_press:
+      - if:
+          condition:
+            lambda: return id(controls_ready);
+          then:
+            - script.execute: show_explanation
+
+  - platform: gpio
+    id: key_left
+    name: "Left Direction Button"
+    pin:
+      number: GPIO4
+      allow_other_uses: true
+      mode: INPUT
+      inverted: true
+    filters:
+      - delayed_on: 30ms
+      - delayed_off: 30ms
+    on_press:
+      - if:
+          condition:
+            lambda: return id(controls_ready);
+          then:
+            - script.execute: show_weather
+
+  - platform: gpio
+    id: key_refresh
+    name: "Refresh Button"
+    pin:
+      number: GPIO5
+      allow_other_uses: true
+      mode: INPUT
+      inverted: true
+    filters:
+      - delayed_on: 30ms
+      - delayed_off: 30ms
+    on_press:
+      - if:
+          condition:
+            lambda: return id(controls_ready);
+          then:
+            - script.execute: show_ai_image
+
+deep_sleep:
+  id: picture_frame_deep_sleep
+  run_duration: 3min
+  sleep_duration: 4h
+  # The E1004 buttons are active-low. GPIO3/4/5 are RTC-capable on ESP32-S3.
+  esp32_ext1_wakeup:
+    pins:
+      - pin:
+          number: GPIO3
+          mode: INPUT_PULLUP
+          allow_other_uses: true
+        on_wake:
+          then:
+            - lambda: id(requested_page) = 1;
+      - pin:
+          number: GPIO4
+          mode: INPUT_PULLUP
+          allow_other_uses: true
+        on_wake:
+          then:
+            - lambda: id(requested_page) = 2;
+      - pin:
+          number: GPIO5
+          mode: INPUT_PULLUP
+          allow_other_uses: true
+        on_wake:
+          then:
+            - lambda: id(requested_page) = 3;
+    mode: ANY_LOW
+
+switch:
+  - platform: template
+    name: "Maintenance Mode"
+    icon: "mdi:tools"
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    turn_on_action:
+      - deep_sleep.prevent: picture_frame_deep_sleep
+    turn_off_action:
+      - deep_sleep.allow: picture_frame_deep_sleep
+
+sensor:
+  - platform: sht4x
+    id: environment_sensor
+    temperature:
+      name: "Temperature"
+      id: temperature
+      accuracy_decimals: 1
+    humidity:
+      name: "Humidity"
+      id: humidity
+      accuracy_decimals: 1
+    update_interval: 60s
+
+  - platform: adc
+    pin: GPIO1
+    name: "Battery Voltage"
+    id: battery_voltage
+    device_class: voltage
+    state_class: measurement
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    attenuation: 12db
+    update_interval: 60s
+    filters:
+      - multiply: 2.0
+
+  - platform: template
+    name: "Battery Level"
+    id: battery_level
+    device_class: battery
+    state_class: measurement
+    unit_of_measurement: "%"
+    icon: "mdi:battery"
+    accuracy_decimals: 0
+    update_interval: 60s
+    lambda: return id(battery_voltage).state;
+    filters:
+      - calibrate_linear:
+          - 4.15 -> 100.0
+          - 3.96 -> 90.0
+          - 3.91 -> 80.0
+          - 3.85 -> 70.0
+          - 3.80 -> 60.0
+          - 3.75 -> 50.0
+          - 3.68 -> 40.0
+          - 3.58 -> 30.0
+          - 3.49 -> 20.0
+          - 3.41 -> 10.0
+          - 3.30 -> 5.0
+          - 3.27 -> 0.0
+      - clamp:
+          min_value: 0
+          max_value: 100
+
+text_sensor:
+  - platform: homeassistant
+    id: ai_picture_description
+    entity_id: input_text.ai_daily_picture_description
+    internal: true
+
+  - platform: homeassistant
+    id: weather_overview
+    entity_id: sensor.picture_frame_weather_overview
+    internal: true
+
+  - platform: homeassistant
+    id: weather_metrics
+    entity_id: sensor.picture_frame_weather_metrics
+    internal: true
+
+  - platform: homeassistant
+    id: forecast_0
+    entity_id: sensor.picture_frame_forecast_0
+    internal: true
+  - platform: homeassistant
+    id: forecast_1
+    entity_id: sensor.picture_frame_forecast_1
+    internal: true
+  - platform: homeassistant
+    id: forecast_2
+    entity_id: sensor.picture_frame_forecast_2
+    internal: true
+  - platform: homeassistant
+    id: forecast_3
+    entity_id: sensor.picture_frame_forecast_3
+    internal: true
+  - platform: homeassistant
+    id: forecast_4
+    entity_id: sensor.picture_frame_forecast_4
+    internal: true
+  - platform: homeassistant
+    id: forecast_5
+    entity_id: sensor.picture_frame_forecast_5
+    internal: true
+  - platform: homeassistant
+    id: forecast_6
+    entity_id: sensor.picture_frame_forecast_6
+    internal: true
+
+image:
+  - platform: online_image
+    id: daily_ai_image
+    url: !secret picture_frame_ai_image_url
+    format: JPEG
+    type: RGB565
+    # A full 1600x1200 RGB565 buffer needs one contiguous 3,840,000-byte
+    # PSRAM block. On this board/firmware the measured largest block is only
+    # 3,538,944 bytes. 1520x1140 keeps the 4:3 ratio, needs 3,465,600 bytes
+    # and is centered by render_ai_image_direct with a small white border.
+    resize: 1520x1140
+    buffer_size: 65536
+    update_interval: never
+    on_download_finished:
+      then:
+        - if:
+            condition:
+              lambda: return id(requested_page) == 0 || id(requested_page) == 3;
+            then:
+              - script.execute: render_ai_image_direct
+    on_error:
+      then:
+        - logger.log: "Could not load AI image"
+        - lambda: |-
+            id(boot_render_started) = false;
+            id(controls_ready) = true;
+
+font:
+  - file:
+      type: gfonts
+      family: Montserrat
+      weight: 900
+    id: font_title
+    size: 48
+    bpp: 2
+    glyphsets: [GF_Latin_Kernel, GF_Latin_Core]
+
+  - file:
+      type: gfonts
+      family: Montserrat
+      weight: 900
+    id: font_explanation
+    size: 86
+    bpp: 2
+    glyphsets: [GF_Latin_Kernel, GF_Latin_Core]
+
+  - file:
+      type: gfonts
+      family: Montserrat
+      weight: 700
+    id: font_weather_large
+    size: 52
+    bpp: 2
+    glyphsets: [GF_Latin_Kernel, GF_Latin_Core]
+
+  - file:
+      type: gfonts
+      family: Montserrat
+      weight: 700
+    id: font_weather_medium
+    size: 38
+    bpp: 2
+    glyphsets: [GF_Latin_Kernel, GF_Latin_Core]
+
+  - file:
+      type: gfonts
+      family: Montserrat
+      weight: 700
+    id: font_forecast
+    size: 23
+    bpp: 2
+    glyphsets: [GF_Latin_Kernel, GF_Latin_Core]
+
+display:
+  - platform: epaper_spi
+    id: epaper_display
+    spi_id: epaper_spi_bus
+    model: Seeed-reTerminal-E1004
+    auto_clear_enabled: false
+    update_interval: never
+
+lvgl:
+  displays: epaper_display
+  rotation: 90
+  color_depth: 16
+  # Two percent gives LVGL a 1600x24-row draw buffer and minimizes PSRAM use.
+  buffer_size: 2%
+  update_when_display_idle: true
+  paused: true
+  default_font: font_weather_medium
+  theme:
+    label:
+      text_color: 0x000000
+  pages:
+    - id: explanation_page
+      bg_color: 0xFFFFFF
+      bg_opa: COVER
+      pad_all: 0
+      widgets:
+        - label:
+            id: explanation_label
+            x: 70
+            y: 70
+            width: 1460
+            height: 1060
+            text: "Erklärung wird geladen ..."
+            text_font: font_explanation
+            text_color: 0x000000
+            text_align: CENTER
+            long_mode: WRAP
+            align: CENTER
+
+    - id: weather_page
+      bg_color: 0xFFFFFF
+      bg_opa: COVER
+      pad_all: 0
+      widgets:
+        - label:
+            x: 45
+            y: 25
+            text: "WETTER"
+            text_font: font_title
+            text_color: 0x000000
+
+        - obj:
+            x: 40
+            y: 94
+            width: 1520
+            height: 4
+            bg_color: 0x000000
+            bg_opa: COVER
+            border_width: 0
+            radius: 0
+
+        - obj:
+            x: 40
+            y: 125
+            width: 900
+            height: 520
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 28
+            widgets:
+              - label:
+                  id: weather_overview_label
+                  width: 840
+                  height: 455
+                  text: "Wetterdaten werden geladen ..."
+                  text_font: font_weather_large
+                  text_color: 0x000000
+                  long_mode: WRAP
+
+        - obj:
+            x: 970
+            y: 125
+            width: 590
+            height: 520
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 26
+            widgets:
+              - label:
+                  id: weather_metrics_label
+                  width: 530
+                  height: 360
+                  text: "Noch keine Messwerte"
+                  text_font: font_weather_medium
+                  text_color: 0x000000
+                  long_mode: WRAP
+              - label:
+                  id: frame_status_label
+                  y: 420
+                  width: 530
+                  text: "FRAME"
+                  text_font: font_forecast
+                  text_color: 0x0000FF
+                  long_mode: WRAP
+
+        - label:
+            x: 45
+            y: 680
+            text: "7-TAGE-VORHERSAGE"
+            text_font: font_weather_medium
+            text_color: 0x000000
+
+        - obj:
+            x: 25
+            y: 740
+            width: 210
+            height: 430
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 12
+            widgets:
+              - label:
+                  id: forecast_0_label
+                  width: 180
+                  height: 395
+                  text: "HEUTE"
+                  text_font: font_forecast
+                  text_align: CENTER
+                  long_mode: WRAP
+
+        - obj:
+            x: 247
+            y: 740
+            width: 210
+            height: 430
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 12
+            widgets:
+              - label:
+                  id: forecast_1_label
+                  width: 180
+                  height: 395
+                  text: "TAG 2"
+                  text_font: font_forecast
+                  text_align: CENTER
+                  long_mode: WRAP
+
+        - obj:
+            x: 469
+            y: 740
+            width: 210
+            height: 430
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 12
+            widgets:
+              - label:
+                  id: forecast_2_label
+                  width: 180
+                  height: 395
+                  text: "TAG 3"
+                  text_font: font_forecast
+                  text_align: CENTER
+                  long_mode: WRAP
+
+        - obj:
+            x: 691
+            y: 740
+            width: 210
+            height: 430
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 12
+            widgets:
+              - label:
+                  id: forecast_3_label
+                  width: 180
+                  height: 395
+                  text: "TAG 4"
+                  text_font: font_forecast
+                  text_align: CENTER
+                  long_mode: WRAP
+
+        - obj:
+            x: 913
+            y: 740
+            width: 210
+            height: 430
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 12
+            widgets:
+              - label:
+                  id: forecast_4_label
+                  width: 180
+                  height: 395
+                  text: "TAG 5"
+                  text_font: font_forecast
+                  text_align: CENTER
+                  long_mode: WRAP
+
+        - obj:
+            x: 1135
+            y: 740
+            width: 210
+            height: 430
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 12
+            widgets:
+              - label:
+                  id: forecast_5_label
+                  width: 180
+                  height: 395
+                  text: "TAG 6"
+                  text_font: font_forecast
+                  text_align: CENTER
+                  long_mode: WRAP
+
+        - obj:
+            x: 1357
+            y: 740
+            width: 210
+            height: 430
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_color: 0x000000
+            border_width: 3
+            radius: 10
+            pad_all: 12
+            widgets:
+              - label:
+                  id: forecast_6_label
+                  width: 180
+                  height: 395
+                  text: "TAG 7"
+                  text_font: font_forecast
+                  text_align: CENTER
+                  long_mode: WRAP
+
+# Copy secrets.example.yaml to secrets.yaml and replace every placeholder.

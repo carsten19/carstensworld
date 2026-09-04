@@ -1,0 +1,144 @@
+# Merge this block into Home Assistant configuration.yaml, or place it in a
+# package. It publishes compact text states for the ESPHome LVGL weather page.
+# Before use, replace the generic source entities used in this example:
+# weather.home, sensor.outdoor_temperature, sensor.rain_today,
+# sensor.sun_next_rising and sensor.sun_next_setting.
+
+template:
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/30"
+      - trigger: state
+        entity_id: weather.home
+    actions:
+      - action: weather.get_forecasts
+        target:
+          entity_id: weather.home
+        data:
+          type: daily
+        response_variable: daily_weather
+      - variables:
+          forecast: "{{ daily_weather['weather.home']['forecast'] }}"
+          weather_labels:
+            clear-night: Klar
+            cloudy: Bewölkt
+            fog: Nebel
+            hail: Hagel
+            lightning: Gewitter
+            lightning-rainy: Gewitterregen
+            partlycloudy: Leicht bewölkt
+            pouring: Starkregen
+            rainy: Regen
+            snowy: Schnee
+            snowy-rainy: Schneeregen
+            sunny: Sonnig
+            windy: Windig
+            windy-variant: Windig
+            exceptional: Unwetter
+    sensor:
+      - name: "Picture Frame Weather Overview"
+        default_entity_id: sensor.picture_frame_weather_overview
+        unique_id: picture_frame_weather_overview
+        state: >-
+          {% set f = forecast[0] %}
+          {% set condition = weather_labels.get(states('weather.home'), states('weather.home')) %}
+          {{ condition ~ '\n' ~
+             (states('sensor.outdoor_temperature') | float(0) | round(1)) ~ ' °C  ·  gefühlt ' ~
+             (state_attr('weather.home', 'apparent_temperature') | float(0) | round(1)) ~ ' °C\n' ~
+             'Heute ' ~ (f.temperature | float(0) | round(0)) ~ '° / ' ~
+             (f.templow | float(0) | round(0)) ~ '°\n' ~
+             'Sonne ' ~ (as_timestamp(states('sensor.sun_next_rising')) | timestamp_custom('%H:%M')) ~
+             ' / ' ~ (as_timestamp(states('sensor.sun_next_setting')) | timestamp_custom('%H:%M')) ~ '\n' ~
+             'Regen ' ~ (f.precipitation_probability | float(0) | round(0)) ~ '%  ·  ' ~
+             (f.precipitation | float(0) | round(1)) ~ ' mm\n' ~
+             'Heute gemessen ' ~ (states('sensor.rain_today') | float(0) | round(1)) ~ ' mm' }}
+
+      - name: "Picture Frame Weather Metrics"
+        default_entity_id: sensor.picture_frame_weather_metrics
+        unique_id: picture_frame_weather_metrics
+        state: >-
+          {% set f = forecast[0] %}
+          {{ 'FEUCHTE  ' ~ (state_attr('weather.home', 'humidity') | float(0) | round(0)) ~ ' %\n' ~
+             'LUFTDRUCK  ' ~ (state_attr('weather.home', 'pressure') | float(0) | round(0)) ~ ' hPa\n' ~
+             'WIND  ' ~ (state_attr('weather.home', 'wind_speed') | float(0) | round(0)) ~ ' km/h\n' ~
+             'BÖEN  ' ~ (state_attr('weather.home', 'wind_gust_speed') | float(0) | round(0)) ~ ' km/h\n' ~
+             'REGENRISIKO  ' ~ (f.precipitation_probability | float(0) | round(0)) ~ ' %\n' ~
+             'UV-INDEX  ' ~ (f.uv_index | float(0) | round(0)) }}
+
+      - name: "Picture Frame Forecast 0"
+        default_entity_id: sensor.picture_frame_forecast_0
+        unique_id: picture_frame_forecast_0
+        state: >-
+          {% set f = forecast[0] %}
+          {{ 'HEUTE\n' ~ weather_labels.get(f.condition, f.condition) ~ '\n\n' ~
+             (f.temperature | round(0)) ~ '° / ' ~ (f.templow | round(0)) ~ '°\n\n' ~
+             (f.precipitation_probability | round(0)) ~ '%  ·  ' ~ (f.precipitation | round(1)) ~ ' mm\n\n' ~
+             'Wind ' ~ (f.wind_speed | round(0)) ~ ' km/h' }}
+
+      - name: "Picture Frame Forecast 1"
+        default_entity_id: sensor.picture_frame_forecast_1
+        unique_id: picture_frame_forecast_1
+        state: >-
+          {% set f = forecast[1] %}
+          {{ (as_timestamp(f.datetime) | timestamp_custom('%a') | upper) ~ '\n' ~
+             weather_labels.get(f.condition, f.condition) ~ '\n\n' ~
+             (f.temperature | round(0)) ~ '° / ' ~ (f.templow | round(0)) ~ '°\n\n' ~
+             (f.precipitation_probability | round(0)) ~ '%  ·  ' ~ (f.precipitation | round(1)) ~ ' mm\n\n' ~
+             'Wind ' ~ (f.wind_speed | round(0)) ~ ' km/h' }}
+
+      - name: "Picture Frame Forecast 2"
+        default_entity_id: sensor.picture_frame_forecast_2
+        unique_id: picture_frame_forecast_2
+        state: >-
+          {% set f = forecast[2] %}
+          {{ (as_timestamp(f.datetime) | timestamp_custom('%a') | upper) ~ '\n' ~
+             weather_labels.get(f.condition, f.condition) ~ '\n\n' ~
+             (f.temperature | round(0)) ~ '° / ' ~ (f.templow | round(0)) ~ '°\n\n' ~
+             (f.precipitation_probability | round(0)) ~ '%  ·  ' ~ (f.precipitation | round(1)) ~ ' mm\n\n' ~
+             'Wind ' ~ (f.wind_speed | round(0)) ~ ' km/h' }}
+
+      - name: "Picture Frame Forecast 3"
+        default_entity_id: sensor.picture_frame_forecast_3
+        unique_id: picture_frame_forecast_3
+        state: >-
+          {% set f = forecast[3] %}
+          {{ (as_timestamp(f.datetime) | timestamp_custom('%a') | upper) ~ '\n' ~
+             weather_labels.get(f.condition, f.condition) ~ '\n\n' ~
+             (f.temperature | round(0)) ~ '° / ' ~ (f.templow | round(0)) ~ '°\n\n' ~
+             (f.precipitation_probability | round(0)) ~ '%  ·  ' ~ (f.precipitation | round(1)) ~ ' mm\n\n' ~
+             'Wind ' ~ (f.wind_speed | round(0)) ~ ' km/h' }}
+
+      - name: "Picture Frame Forecast 4"
+        default_entity_id: sensor.picture_frame_forecast_4
+        unique_id: picture_frame_forecast_4
+        state: >-
+          {% set f = forecast[4] %}
+          {{ (as_timestamp(f.datetime) | timestamp_custom('%a') | upper) ~ '\n' ~
+             weather_labels.get(f.condition, f.condition) ~ '\n\n' ~
+             (f.temperature | round(0)) ~ '° / ' ~ (f.templow | round(0)) ~ '°\n\n' ~
+             (f.precipitation_probability | round(0)) ~ '%  ·  ' ~ (f.precipitation | round(1)) ~ ' mm\n\n' ~
+             'Wind ' ~ (f.wind_speed | round(0)) ~ ' km/h' }}
+
+      - name: "Picture Frame Forecast 5"
+        default_entity_id: sensor.picture_frame_forecast_5
+        unique_id: picture_frame_forecast_5
+        state: >-
+          {% set f = forecast[5] %}
+          {{ (as_timestamp(f.datetime) | timestamp_custom('%a') | upper) ~ '\n' ~
+             weather_labels.get(f.condition, f.condition) ~ '\n\n' ~
+             (f.temperature | round(0)) ~ '° / ' ~ (f.templow | round(0)) ~ '°\n\n' ~
+             (f.precipitation_probability | round(0)) ~ '%  ·  ' ~ (f.precipitation | round(1)) ~ ' mm\n\n' ~
+             'Wind ' ~ (f.wind_speed | round(0)) ~ ' km/h' }}
+
+      - name: "Picture Frame Forecast 6"
+        default_entity_id: sensor.picture_frame_forecast_6
+        unique_id: picture_frame_forecast_6
+        state: >-
+          {% set f = forecast[6] %}
+          {{ (as_timestamp(f.datetime) | timestamp_custom('%a') | upper) ~ '\n' ~
+             weather_labels.get(f.condition, f.condition) ~ '\n\n' ~
+             (f.temperature | round(0)) ~ '° / ' ~ (f.templow | round(0)) ~ '°\n\n' ~
+             (f.precipitation_probability | round(0)) ~ '%  ·  ' ~ (f.precipitation | round(1)) ~ ' mm\n\n' ~
+             'Wind ' ~ (f.wind_speed | round(0)) ~ ' km/h' }}

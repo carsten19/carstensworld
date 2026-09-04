@@ -1,6 +1,7 @@
 # Secrets - niemals committen!
 secrets.yaml
 secrets.*.yaml
+!seeed-reterminal-e1004/secrets.example.yaml
 
 # Backup files
 *.backup
@@ -15,3 +16,6 @@ Thumbs.db
 
 # Log files
 *.log
+
+# ESPHome generated cache/build files
+.esphome/

@@ -15,6 +15,12 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 - **Video:** https://youtu.be/-BWdE85hcqw
 - **Files:** `eink-display/`
 
+### Seeed Studio reTerminal E1004 Picture Frame
+- **Hardware:** Seeed Studio reTerminal E1004 (13,3" Sechsfarben-E-Paper)
+- **Video:** https://youtu.be/B2D3pNJRpu8
+- **Files:** `seeed-reterminal-e1004/`
+- **Beschreibung:** ESPHome-Konfiguration für einen dreiseitigen Bilderrahmen mit KI-Bild, Wetter-Dashboard und Bilderklärung sowie die dazugehörigen Home-Assistant-Template-Sensoren.
+
 ### M5Stack Atom Echo IR Proxy
 - **Hardware:** M5Stack Atom Echo
 - **Video:** TODO - Link zum Video ergänzen
