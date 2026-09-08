@@ -1,0 +1,97 @@
+# Board: Seeed Studio XIAO nRF52840
+# Sensor: OPT3001 ambient light sensor
+
+esphome:
+  name: ble-lumi-nrf
+  friendly_name: BLE Lumi nRF
+  on_boot:
+    - priority: -100
+      then:
+        # Der Standard-Loop von ESPHome läuft alle 16 ms. Für diesen
+        # langsamen Sensor genügt eine Sekunde; BLE sendet selbstständig weiter.
+        - lambda: |-
+            App.set_loop_interval(1000);
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/carsten19/esphome-bthome
+      ref: v0.3.0-nrf52
+    components: [bthome, nrf52_low_power]
+
+nrf52_low_power:
+  # Deaktiviert USB/UART nur in der laufenden Anwendung. Laden und der
+  # separate UF2-Bootloader per Doppel-Reset funktionieren weiterhin.
+  disable_usb_uart: true
+
+nrf52:
+  board: xiao_ble
+  dcdc: true
+
+# Absichtlich kein logger-Block: Der nRF52-Logger aktiviert sonst USB-CDC.
+
+i2c:
+  sda: P0.04
+  scl: P0.05
+  scan: false
+
+bthome:
+  trigger_based: false
+  min_interval: 5s
+  max_interval: 10s
+  tx_power: -4
+  sensors:
+    - type: battery
+      id: battery_level
+    - type: voltage
+      id: battery_voltage
+    - type: illuminance
+      id: lumi
+
+# Der physische LOW-Pegel hält den internen 1-MOhm-/510-kOhm-Spannungsteiler
+# verbunden. Dadurch bleibt P0.31 auch beim Laden des LiPo per USB unter VDD.
+switch:
+  - platform: gpio
+    id: battery_read_enable
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin:
+      number: P0.14
+      inverted: true
+
+sensor:
+  - platform: opt3001
+    id: lumi
+    name: "OPT3001 Illuminance"
+    update_interval: 5min
+
+  - platform: adc
+    pin: P0.31
+    nrf_saadc: battery_adc
+    id: battery_voltage
+    name: "Battery Voltage"
+    unit_of_measurement: V
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 2
+    update_interval: 30min
+    filters:
+      - multiply: 2.961
+
+  - platform: copy
+    source_id: battery_voltage
+    id: battery_level
+    name: "Battery Level"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    device_class: battery
+    filters:
+      - calibrate_linear:
+          # Einfache lineare Zuordnung für den verwendeten LiPo-Akku.
+          - 3.20 -> 0
+          - 4.14 -> 100
+      - lambda: |-
+          if (isnan(x)) return x;
+          if (x < 1) return 1;
+          if (x > 100) return 100;
+          return x;

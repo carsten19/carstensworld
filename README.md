@@ -4,6 +4,13 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 
 ## 📁 Projekte
 
+### BLE-Helligkeitssensor mit XIAO nRF52840
+- **Hardware:** Seeed Studio XIAO nRF52840 + OPT3001
+- **Video:** TODO – Link zum Video ergänzen
+- **Files:** [`ble-light-sensor-nrf52840/`](ble-light-sensor-nrf52840/)
+- **ESPHome:** 2026.8.1 getestet
+- **Beschreibung:** Batteriebetriebener Helligkeitssensor, der Luxwert, Akkuspannung und Akkustand per BTHome an Home Assistant sendet. Durch deaktiviertes USB/UART und weitere nRF52-Low-Power-Anpassungen wurden am fertigen Aufbau rund 10 µA Ruhestrom gemessen.
+
 ### Dashboard Timer (HA Voice PE + Waveshare 7" Display)
 - **Hardware:** Home Assistant Voice Preview Edition + Waveshare ESP32-S3 7" LCD Development Board
 - **Video:** https://www.youtube.com/watch?v=UrlC64jcwt4
