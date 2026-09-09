@@ -16,7 +16,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/carsten19/esphome-bthome
-      ref: v0.3.0-nrf52
+      ref: v0.4.0-nrf52
     components: [bthome, nrf52_low_power]
 
 nrf52_low_power:
@@ -39,7 +39,8 @@ bthome:
   trigger_based: false
   min_interval: 5s
   max_interval: 10s
-  tx_power: -4
+  # Maximale nRF52840-Sendeleistung für den Außensensor hinter einer Wand.
+  tx_power: 8
   sensors:
     - type: battery
       id: battery_level

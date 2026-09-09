@@ -12,8 +12,9 @@ nicht erforderlich.
 
 ## Gemessener Stromverbrauch
 
-Am vollständigen Aufbau wurden mit der enthaltenen Konfiguration folgende
-Werte angezeigt:
+Am vollständigen Aufbau wurden vor der Aktivierung der echten
+TX-Power-Steuerung folgende Werte angezeigt. Der Funkcontroller sendete dabei
+mit seiner Standardleistung von 0 dBm:
 
 - etwa **10 µA** im Ruhezustand
 - kurz etwa **15 µA** bei sichtbarer BLE-Aktivität
@@ -54,7 +55,7 @@ hardwareseitig weiter.
 - Home Assistant mit Bluetooth-Adapter oder einem Bluetooth-Proxy in Reichweite
 - der fest referenzierte Fork
   [`carsten19/esphome-bthome`](https://github.com/carsten19/esphome-bthome)
-  in Version `v0.3.0-nrf52`
+  in Version `v0.4.0-nrf52`
 
 Das Projekt verwendet keine Secrets, da der Sensor ausschließlich per BLE
 sendet. Die Datei `secrets.example.yaml` dokumentiert das ausdrücklich.
@@ -88,8 +89,11 @@ automatisch und bietet die drei Messwerte als neue Entitäten an.
 
 ## Einstellungen anpassen
 
-- `tx_power`: Sendeleistung reduzieren oder erhöhen, falls die Reichweite nicht
-  ausreicht.
+- `tx_power`: `v0.4.0-nrf52` setzt diesen Wert tatsächlich am
+  nRF52840-Funkcontroller. Die enthaltenen `8` dBm wurden für den Außensensor
+  gewählt, weil zwischen Sensor und Bluetooth-Proxy eine Wand liegt. Niedrigere
+  Werte sparen während der kurzen Funkimpulse Strom, reduzieren aber die
+  Verbindungsreserve.
 - `min_interval` / `max_interval`: Abstand der BLE-Advertisements.
 - `update_interval` beim OPT3001 und ADC: Messintervalle.
 - `3.20 -> 0` und `4.14 -> 100`: einfache Akkuprozent-Kalibrierung für den
