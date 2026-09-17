@@ -1,0 +1,44 @@
+automation:
+  - alias: Beispiel – Waschmaschine fertig
+    triggers:
+      - trigger: state
+        entity_id: sensor.washing_machine_status
+        to: finished
+    actions:
+      - action: script.notification_hub
+        data:
+          level: info
+          title: Waschmaschine
+          message: Die Waschmaschine ist fertig.
+          short_message: Waschmaschine fertig
+          duration_minutes: 10
+          tts: true
+
+  - alias: Beispiel – Fenster lange offen
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.living_room_window
+        to: "on"
+        for: "00:15:00"
+    actions:
+      - action: script.notification_hub
+        data:
+          level: warning
+          message: Das Wohnzimmerfenster ist seit 15 Minuten geöffnet.
+          short_message: Wohnzimmerfenster offen
+          duration_minutes: 15
+
+  - alias: Beispiel – Wassersensor
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.utility_room_water_leak
+        to: "on"
+    actions:
+      - action: script.notification_hub
+        data:
+          level: critical
+          title: Wasser erkannt
+          message: Der Wassersensor im Hauswirtschaftsraum hat ausgelöst.
+          short_message: Wasser im Hauswirtschaftsraum
+          duration_minutes: 30
+          tts_force: true

@@ -1,0 +1,33 @@
+input_text:
+  notification_hub_info:
+    name: Notification Hub – Information
+    max: 255
+  notification_hub_warning:
+    name: Notification Hub – Warnung
+    max: 255
+
+timer:
+  notification_hub_reset:
+    name: Notification Hub – Rücksetzung
+    duration: "00:05:00"
+    restore: true
+
+automation:
+  - id: notification_hub_clear_dashboard_texts
+    alias: Notification Hub – Dashboard-Texte zurücksetzen
+    description: Leert Info und Warnung nach Ablauf des Notification-Hub-Timers.
+    triggers:
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.notification_hub_reset
+    conditions: []
+    actions:
+      - action: input_text.set_value
+        target:
+          entity_id:
+            - input_text.notification_hub_info
+            - input_text.notification_hub_warning
+        data:
+          value: ""
+    mode: restart

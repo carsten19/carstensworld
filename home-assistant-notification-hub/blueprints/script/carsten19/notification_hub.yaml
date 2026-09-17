@@ -1,0 +1,230 @@
+blueprint:
+  name: Notification Hub
+  description: >-
+    Bündelt Informationen, Warnungen und kritische Meldungen in einem zentralen
+    Skript. Unterstützt Dashboard-Texte, frei konfigurierbare
+    Benachrichtigungsaktionen, optionales TTS und eine automatische Rücksetzung.
+  domain: script
+  author: Carsten's World
+  source_url: https://github.com/carsten19/carstensworld/blob/main/home-assistant-notification-hub/blueprints/script/carsten19/notification_hub.yaml
+  homeassistant:
+    min_version: 2024.8.0
+  input:
+    dashboard:
+      name: Dashboard
+      icon: mdi:view-dashboard-outline
+      input:
+        info_dashboard_entity:
+          name: Info-Helfer
+          description: input_text-Helfer für normale Informationen.
+          selector:
+            entity:
+              filter:
+                - domain: input_text
+        warning_dashboard_entity:
+          name: Warnungs-Helfer
+          description: input_text-Helfer für Warnungen und kritische Meldungen.
+          selector:
+            entity:
+              filter:
+                - domain: input_text
+        reset_timer_entity:
+          name: Rücksetz-Timer
+          description: Timer, nach dessen Ablauf die Dashboard-Texte geleert werden.
+          selector:
+            entity:
+              filter:
+                - domain: timer
+    delivery:
+      name: Zustellwege
+      icon: mdi:send-outline
+      input:
+        info_actions:
+          name: Aktionen für Informationen
+          description: >-
+            Optional. In diesen Aktionen stehen notification_message,
+            notification_title, display_message und notification_level als
+            Template-Variablen bereit.
+          default: []
+          selector:
+            action: {}
+        warning_actions:
+          name: Aktionen für Warnungen
+          description: Zum Beispiel eine Push-Nachricht oder Messenger-Mitteilung.
+          default: []
+          selector:
+            action: {}
+        critical_actions:
+          name: Aktionen für kritische Meldungen
+          description: Für besonders auffällige oder mehrere Zustellwege.
+          default: []
+          selector:
+            action: {}
+        tts_actions:
+          name: TTS-Aktionen
+          description: >-
+            Optional. Empfohlen wird tts.speak direkt auf einen Media Player.
+            notification_message enthält den zu sprechenden Text.
+          default: []
+          selector:
+            action: {}
+    tts_control:
+      name: TTS-Steuerung
+      icon: mdi:account-voice
+      collapsed: true
+      input:
+        vacation_entity:
+          name: Abwesenheits-/Urlaubs-Helfer
+          description: >-
+            Optionaler input_boolean. Bei Zustand on wird normales TTS
+            unterdrückt. tts_force umgeht diese Sperre.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_boolean
+
+fields:
+  message:
+    name: Nachricht
+    description: Vollständiger Meldungstext.
+    required: true
+    selector:
+      text:
+        multiline: true
+  title:
+    name: Titel
+    description: Optionaler Titel. Ohne Angabe wird er aus der Stufe erzeugt.
+    selector:
+      text: {}
+  level:
+    name: Stufe
+    required: true
+    default: info
+    selector:
+      select:
+        options:
+          - label: Information
+            value: info
+          - label: Warnung
+            value: warning
+          - label: Kritisch
+            value: critical
+  short_message:
+    name: Kurztext
+    description: Optionaler kompakter Text für das Dashboard.
+    selector:
+      text: {}
+  duration_minutes:
+    name: Anzeigedauer
+    description: Minuten bis zum Leeren der Dashboard-Texte. 0 deaktiviert das Zurücksetzen.
+    default: 5
+    selector:
+      number:
+        min: 0
+        max: 60
+        step: 1
+        unit_of_measurement: min
+        mode: slider
+  tts:
+    name: TTS verwenden
+    default: false
+    selector:
+      boolean: {}
+  tts_force:
+    name: TTS erzwingen
+    description: Spricht auch bei aktivem Abwesenheits-/Urlaubs-Helfer.
+    default: false
+    selector:
+      boolean: {}
+
+variables:
+  info_dashboard_entity: !input info_dashboard_entity
+  warning_dashboard_entity: !input warning_dashboard_entity
+  reset_timer_entity: !input reset_timer_entity
+  vacation_entity: !input vacation_entity
+
+sequence:
+  - variables:
+      notification_level: "{{ level | default('info', true) | lower }}"
+      notification_message: "{{ message }}"
+      display_message: "{{ short_message | default(message, true) }}"
+      duration_value: "{{ duration_minutes | default(5, true) | int(5) }}"
+      tts_requested: "{{ tts | default(false) | bool or tts_force | default(false) | bool }}"
+      tts_is_forced: "{{ tts_force | default(false) | bool }}"
+      vacation_active: >-
+        {{ vacation_entity != '' and is_state(vacation_entity, 'on') }}
+      notification_title: >-
+        {% if title is defined and title | trim != '' %}
+          {{ title }}
+        {% elif notification_level == 'critical' %}
+          Kritisch
+        {% elif notification_level == 'warning' %}
+          Warnung
+        {% else %}
+          Information
+        {% endif %}
+
+  - if:
+      - condition: template
+        value_template: "{{ notification_level not in ['info', 'warning', 'critical'] }}"
+    then:
+      - stop: "Unbekannte Stufe: {{ notification_level }}"
+        error: true
+
+  - if:
+      - condition: template
+        value_template: "{{ tts_requested and (tts_is_forced or not vacation_active) }}"
+    then: !input tts_actions
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ notification_level == 'critical' }}"
+        sequence: !input critical_actions
+      - conditions:
+          - condition: template
+            value_template: "{{ notification_level == 'warning' }}"
+        sequence: !input warning_actions
+    default: !input info_actions
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ notification_level == 'info' }}"
+        sequence:
+          - action: input_text.set_value
+            target:
+              entity_id: "{{ info_dashboard_entity }}"
+            data:
+              value: "{{ display_message }}"
+          - action: input_text.set_value
+            target:
+              entity_id: "{{ warning_dashboard_entity }}"
+            data:
+              value: ""
+    default:
+      - action: input_text.set_value
+        target:
+          entity_id: "{{ warning_dashboard_entity }}"
+        data:
+          value: "{{ display_message }}"
+      - action: input_text.set_value
+        target:
+          entity_id: "{{ info_dashboard_entity }}"
+        data:
+          value: ""
+
+  - if:
+      - condition: template
+        value_template: "{{ duration_value > 0 }}"
+    then:
+      - action: timer.start
+        target:
+          entity_id: "{{ reset_timer_entity }}"
+        data:
+          duration: "{{ duration_value * 60 }}"
+
+mode: queued
+max: 20
+max_exceeded: warning

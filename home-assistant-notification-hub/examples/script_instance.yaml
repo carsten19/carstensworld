@@ -1,0 +1,46 @@
+script:
+  notification_hub:
+    alias: Notification Hub
+    description: Zentraler Router für Meldungen, Dashboard und TTS.
+    use_blueprint:
+      path: carsten19/notification_hub.yaml
+      input:
+        info_dashboard_entity: input_text.notification_hub_info
+        warning_dashboard_entity: input_text.notification_hub_warning
+        reset_timer_entity: timer.notification_hub_reset
+        vacation_entity: input_boolean.vacation_mode
+
+        # Optional: Informationen zusätzlich als normale Push-Nachricht senden.
+        info_actions: []
+
+        warning_actions:
+          - action: notify.mobile_app_your_phone
+            data:
+              title: "{{ notification_title }}"
+              message: "{{ notification_message }}"
+
+        critical_actions:
+          - action: notify.mobile_app_your_phone
+            data:
+              title: "{{ notification_title }}"
+              message: "{{ notification_message }}"
+              data:
+                ttl: 0
+                priority: high
+          # Moderne Notify-Entitäten, beispielsweise Telegram oder Matrix:
+          # - action: notify.send_message
+          #   target:
+          #     entity_id: notify.your_messenger
+          #   data:
+          #     title: "{{ notification_title }}"
+          #     message: "{{ notification_message }}"
+
+        # Direkte Home-Assistant-TTS-Ausgabe, kein MQTT-Zwischenschritt.
+        tts_actions:
+          - action: tts.speak
+            target:
+              entity_id: tts.your_tts_engine
+            data:
+              media_player_entity_id: media_player.your_speaker
+              message: "{{ notification_message }}"
+              cache: false

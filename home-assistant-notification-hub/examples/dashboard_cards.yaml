@@ -1,0 +1,34 @@
+type: vertical-stack
+cards:
+  - type: tile
+    entity: input_text.notification_hub_warning
+    name: Warnung
+    icon: mdi:alert
+    color: red
+    hide_state: false
+    visibility:
+      - condition: state
+        entity: input_text.notification_hub_warning
+        state_not: ""
+      - condition: state
+        entity: input_text.notification_hub_warning
+        state_not: unknown
+      - condition: state
+        entity: input_text.notification_hub_warning
+        state_not: unavailable
+  - type: tile
+    entity: input_text.notification_hub_info
+    name: Information
+    icon: mdi:information-outline
+    color: blue
+    hide_state: false
+    visibility:
+      - condition: state
+        entity: input_text.notification_hub_info
+        state_not: ""
+      - condition: state
+        entity: input_text.notification_hub_info
+        state_not: unknown
+      - condition: state
+        entity: input_text.notification_hub_info
+        state_not: unavailable
