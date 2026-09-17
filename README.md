@@ -30,7 +30,7 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 
 ### M5Stack Atom Echo IR Proxy
 - **Hardware:** M5Stack Atom Echo
-- **Video:** TODO - Link zum Video ergänzen
+- **Video:** https://youtu.be/94_GbODLIN0
 - **Files:** `ir-proxy/`
 - **ESPHome:** 2026.1.0 oder neuer
 - **Beschreibung:** ESPHome-Konfiguration für einen kompakten IR-Proxy mit Home-Assistant-Actions zum Senden von Pronto-, NEC-, Panasonic- und Sony-IR-Codes.
