@@ -35,7 +35,7 @@ script:
           #     title: "{{ notification_title }}"
           #     message: "{{ notification_message }}"
 
-        # Direkte Home-Assistant-TTS-Ausgabe, kein MQTT-Zwischenschritt.
+        # Direkte Home-Assistant-TTS-Ausgabe.
         tts_actions:
           - action: tts.speak
             target:

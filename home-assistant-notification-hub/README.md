@@ -21,9 +21,9 @@ aus dem Video:
 - `tts_force` für Meldungen, die trotzdem gesprochen werden sollen
 - warteschlangenfähiger Skriptmodus für gleichzeitig eintreffende Meldungen
 
-Es gibt bewusst **keine fest eingebauten Geräte, Messenger oder MQTT-Topics**.
-Push, Telegram, Matrix oder andere Ziele werden als normale Home-Assistant-
-Aktionen beim Erstellen des Skripts konfiguriert.
+Es gibt bewusst **keine fest eingebauten Geräte oder Messenger**. Push,
+Telegram, Matrix oder andere Ziele werden als normale Home-Assistant-Aktionen
+beim Erstellen des Skripts konfiguriert.
 
 ## Dateien
 
@@ -100,7 +100,7 @@ Beispiel für eine moderne Notify-Entität:
     message: "{{ notification_message }}"
 ```
 
-### 4. TTS ohne MQTT konfigurieren
+### 4. TTS konfigurieren
 
 ```yaml
 - action: tts.speak
@@ -131,15 +131,6 @@ bei Abwesenheit sperren; `tts_force` umgeht diese Sperre.
 
 Weitere Beispiele stehen in
 [`examples/automation_calls.yaml`](examples/automation_calls.yaml).
-
-## Unterschiede zum privaten Original
-
-- keine privaten Entity-IDs oder Benachrichtigungsziele
-- keine fest verdrahteten Mobile-App-, Telegram- oder Matrix-Dienste
-- direktes Home-Assistant-TTS statt MQTT-Zwischenschritt
-- explizite Meldungsstufen statt eines einzelnen `urgent`-Flags
-- `tts` und `tts_force` werden als echte Boolean-Werte ausgewertet
-- Meldungen werden im Modus `queued` nacheinander verarbeitet
 
 ## Hinweise
 

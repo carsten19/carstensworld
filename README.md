@@ -56,7 +56,7 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 - **Typ:** Zentraler Skript-Blueprint für Informationen, Warnungen und kritische Meldungen
 - **Video:** https://youtu.be/EfXObDNgm7k
 - **Files:** [`home-assistant-notification-hub/`](home-assistant-notification-hub/)
-- **Beschreibung:** Generischer Benachrichtigungs-Router mit frei konfigurierbaren Aktionen, Dashboard-Kurztexten, Timer-Rücksetzung und direktem Home-Assistant-TTS ohne MQTT-Zwischenschritt.
+- **Beschreibung:** Generischer Benachrichtigungs-Router mit frei konfigurierbaren Aktionen, Dashboard-Kurztexten, Timer-Rücksetzung und direktem Home-Assistant-TTS.
 
 ## 🚀 Quick Start
 
