@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""EN04 wall enclosure V6 - V5 plus fixes from the first real print.
+"""EN04 wall enclosure V7 - the display is retained by the front chassis itself.
+
+V7 changes against V6:
+- Rear-cover panel flange removed. It never touched the panel (0.8 mm air gap,
+  only foam made contact) and needed support.
+- Front chassis: fixed undercut lips on the lower panel edge (both sides of the
+  FPC gap) plus two screwed clamp tabs on the upper left/right panel edges.
+  Snap hooks were rejected: the hook would sit 2 mm above its root, PLA would
+  need >5 % strain for the required deflection.
+- Separate part: clamp tab (print 2x).
+
+V6 notes:
 
 V6 changes against V5 (all in the rear cover):
 - USB-C opening runs down to the parting line; the thin 1.4 mm web in front
@@ -87,8 +98,14 @@ Z_REAR_IN = 20.0
 Z_REAR_OUT = 22.0
 Z_RIM = FRONT_T
 
-FLANGE_Z0, FLANGE_Z1 = 4.9, 7.3
-FLANGE_OVERLAP = 2.0
+# Panel retention in the front chassis.
+LIP_OVERLAP, LIP_GAP, LIP_T = 0.8, 0.2, 1.0   # lower lips over the panel edge
+CLAMP_T, CLAMP_W, CLAMP_OVER = 1.6, 10.0, 1.5 # clamp tab thickness, width, panel overlap
+CLAMP_PRELOAD = 0.1                           # nose reaches 0.1 mm below panel rear
+CLAMP_DOME_R = 2.4
+CLAMP_DX = 4.5                                # dome centre outside the panel edge
+CLAMP_Y = None                                # set after PANEL_Y is known
+CLAMP_PILOT_Z0 = 0.8                          # 0.8 mm front skin stays closed
 
 # Screw seat depth: M2x16 tip ends 0.5 mm above the pilot-hole bottom.
 Z_PILOT_BOTTOM = FRONT_T - 0.1
@@ -98,6 +115,9 @@ BAT_X = (CASE_W - BAT_W) / 2
 BAT_Y = PANEL_Y + 14.0
 KEYHOLE_X = (27.0, CASE_W - 27.0)
 KEYHOLE_Y = PANEL_Y + 30.0
+CLAMP_Y = PANEL_Y + PANEL_H - 14.0
+CLAMPS = [(PANEL_X - CLAMP_DX, CLAMP_Y, +1), (PANEL_X + PANEL_W + CLAMP_DX, CLAMP_Y, -1)]
+Z_GUIDE_TOP = FRONT_T + GUIDE_H
 
 
 def front_chassis():
@@ -134,7 +154,43 @@ def front_chassis():
     board_posts = [g.difference(g.cylinder(x, y, FRONT_T, 2.2, post_h),
                                 [g.cylinder(x, y, FRONT_T - 0.1, PILOT_R, post_h + 0.2)])
                    for x, y in BOARD_HOLES]
-    return g.union([body, *guides, *case_bosses, *board_posts])
+    # Lower lips: fixed undercut on both guide segments beside the FPC gap.
+    # Insert the panel bottom edge first at a slight angle, then lay it down.
+    lz0 = Z_PANEL_REAR + LIP_GAP
+    lip_y0 = gb
+    lip_len = PANEL_Y + LIP_OVERLAP - lip_y0
+    lips = [g.box(gl + gt_thk, lip_y0, lz0, gap_x0 - gl - gt_thk, lip_len, LIP_T),
+            g.box(gap_x1, lip_y0, lz0, gr - gap_x1, lip_len, LIP_T),
+            # Wall under the lips so they are anchored and printable.
+            g.box(gl, gb, FRONT_T, gap_x0 - gl, gt_thk, lz0 + LIP_T - FRONT_T),
+            g.box(gap_x1, gb, FRONT_T, gr + gt_thk - gap_x1, gt_thk, lz0 + LIP_T - FRONT_T)]
+
+    # Clamp domes: top flush with the guides, pilot for M2x5 self-tapping.
+    clamp_domes = [g.difference(g.cylinder(x, y, FRONT_T, CLAMP_DOME_R, GUIDE_H),
+                                [g.cylinder(x, y, CLAMP_PILOT_Z0, PILOT_R,
+                                            Z_GUIDE_TOP - CLAMP_PILOT_Z0 + 0.2)])
+                   for x, y, _ in CLAMPS]
+    return g.union([body, *guides, *lips, *case_bosses, *board_posts, *clamp_domes])
+
+
+def clamp_tab():
+    """Clamp tab in print orientation: flat side on the bed, nose pointing up.
+
+    Installed flipped: the flat side faces the rear cover, the nose presses on
+    the panel rear face. X runs from the screw hole towards the panel.
+    """
+    reach = CLAMP_DX + CLAMP_OVER                  # dome centre to nose tip
+    x0 = -CLAMP_DOME_R - 0.5
+    body = g.box(x0, -CLAMP_W / 2, 0, reach - x0, CLAMP_W, CLAMP_T)
+    # Nose: steps down from guide top to the panel rear face (+ small preload).
+    nose_h = Z_GUIDE_TOP - Z_PANEL_REAR + CLAMP_PRELOAD
+    guide_outer = CLAMP_DX - 0.5 - 0.8             # x of guide outer face
+    nose_x0 = CLAMP_DX - 0.5 + 0.1                 # just inside the guide inner face
+    nose = g.box(nose_x0, -CLAMP_W / 2, CLAMP_T - 0.01, reach - nose_x0, CLAMP_W, nose_h + 0.01)
+    tab = g.union([body, nose])
+    tab = g.difference(tab, [g.cylinder(0, 0, -0.2, 1.2, CLAMP_T + nose_h + 0.4)])
+    assert guide_outer > CLAMP_DOME_R, "clamp dome hits guide"
+    return tab
 
 
 def rear_shell():
@@ -143,25 +199,6 @@ def rear_shell():
                           Z_REAR_IN - Z_RIM, max(1.0, CORNER_R - WALL),
                           z=Z_RIM, x=WALL, y=WALL)
     shell = g.difference(outer, [inner])
-
-    # Three-sided panel retainer; open at the FPC edge.
-    px0, px1 = PANEL_X, PANEL_X + PANEL_W
-    py1 = PANEL_Y + PANEL_H
-    fz = FLANGE_Z1 - FLANGE_Z0
-    wall_overlap = 0.25
-    flange = g.union([
-        g.box(WALL - wall_overlap, PANEL_Y, FLANGE_Z0,
-              px0 + FLANGE_OVERLAP - WALL + wall_overlap, PANEL_H, fz),
-        g.box(px1 - FLANGE_OVERLAP, PANEL_Y, FLANGE_Z0,
-              CASE_W - WALL + wall_overlap - (px1 - FLANGE_OVERLAP), PANEL_H, fz),
-        g.box(WALL - wall_overlap, py1 - FLANGE_OVERLAP, FLANGE_Z0,
-              CASE_W - 2 * (WALL - wall_overlap),
-              CASE_H - WALL + wall_overlap - (py1 - FLANGE_OVERLAP), fz),
-    ])
-    flange = g.difference(flange,
-                           [g.cylinder(x, y, FLANGE_Z0 - 0.2, BOSS_R + 0.3, fz + 0.4)
-                            for x, y in CASE_SCREWS])
-    shell = g.union([shell, flange])
 
     # Bottom-wall access for USB-C, power switch and four buttons.
     def bottom_cut(x0, x1, comp_z, mx=1.0, mz=1.0):
@@ -243,6 +280,11 @@ def check():
             d = ((hx - sx) ** 2 + (hy - sy) ** 2) ** 0.5
             assert d > BOSS_R + 2.2 + 0.5, f"board post/case boss collision: {d:.2f} mm"
     assert BOARD_X + BOARD_W <= CASE_SCREWS[1][0] - BOSS_R - 2.0, "right boss clearance lost"
+    assert Z_GUIDE_TOP + CLAMP_T + 1.4 < Z_REAR_IN - 3.5, "clamp head hits rear parts"
+    for x, y, _ in CLAMPS:
+        assert x - CLAMP_DOME_R - 0.5 > WALL + 0.5 and x + CLAMP_DOME_R + 0.5 < CASE_W - WALL - 0.5
+        assert y + CLAMP_W / 2 < CASE_SCREWS[2][1] - TUBE_R - 0.5, "clamp hits case screw tube"
+    assert Z_GUIDE_TOP - CLAMP_PILOT_Z0 + CLAMP_T >= 5.0, "M2x5 does not fit"
     assert Z_SEAT + HEAD_K <= Z_REAR_OUT - 0.3, "screw head not recessed"
     assert Z_SEAT < Z_REAR_IN, "counterbore must end inside the tube, not in the plate"
     assert Z_BOSS_TOP - (Z_SEAT - SCREW_LEN) >= 3.0, "too little thread engagement"
@@ -283,8 +325,9 @@ def main():
     print(f"buttons x={[round(flip_x(b), 2) for b in BUTTON_Y]} (last = RESET)")
     print(f"screw seat z={Z_SEAT:.2f}, head top z={Z_SEAT + HEAD_K:.2f}, rear face z={Z_REAR_OUT:.1f}, "
           f"engagement={Z_BOSS_TOP - (Z_SEAT - SCREW_LEN):.2f} mm")
-    export("en04_front_chassis_v6", front_chassis())
-    export("en04_rear_cover_v6", rear_shell())
+    export("en04_front_chassis_v7", front_chassis())
+    export("en04_rear_cover_v7", rear_shell())
+    export("en04_panel_clamp_v7", clamp_tab())
 
 
 if __name__ == "__main__":

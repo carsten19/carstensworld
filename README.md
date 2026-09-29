@@ -6,16 +6,16 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 
 ### BLE-Helligkeitssensor mit XIAO nRF52840
 - **Hardware:** Seeed Studio XIAO nRF52840 + OPT3001
-- **Video:** TODO – Link zum Video ergänzen
+- **Video:** https://youtu.be/a9gEFRlPrB0
 - **Files:** [`ble-light-sensor-nrf52840/`](ble-light-sensor-nrf52840/)
 - **ESPHome:** 2026.8.1 getestet
 - **Beschreibung:** Batteriebetriebener Helligkeitssensor, der Luxwert, Akkuspannung und Akkustand per BTHome an Home Assistant sendet. Durch deaktiviertes USB/UART und weitere nRF52-Low-Power-Anpassungen wurden am fertigen Aufbau rund 10 µA Ruhestrom gemessen.
 
 ### XIAO ePaper EN04 Wandgehäuse
 - **Hardware:** Seeed Studio XIAO ePaper Display Board EN04 (nRF52840) + 4,2" Monochrome ePaper + LiPo-Akku
-- **Video:** TODO – Link zum Video ergänzen
+- **Video:** https://youtu.be/oomAC2TNEEU
 - **Files:** [`xiao-epaper-en04-case/`](xiao-epaper-en04-case/)
-- **Beschreibung:** 3D-druckbares Zwei-Teile-Wandgehäuse (V6) für ein akkubetriebenes OpenDisplay-E-Ink-Display, inklusive parametrischer Python-Quelle.
+- **Beschreibung:** 3D-druckbares Wandgehäuse (V7) für ein akkubetriebenes OpenDisplay-E-Ink-Display, inklusive parametrischer Python-Quelle.
 
 ### Dashboard Timer (HA Voice PE + Waveshare 7" Display)
 - **Hardware:** Home Assistant Voice Preview Edition + Waveshare ESP32-S3 7" LCD Development Board
