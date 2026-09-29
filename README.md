@@ -23,6 +23,13 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 - **Files:** `dashboard-timer/`
 - **Beschreibung:** ESPHome-Konfiguration für die HA Voice PE (Timer-Sensor-Export via Lambda) und das Waveshare 7"-Dashboard (LVGL Timer-Widget mit Fortschrittsbalken).
 
+### Küchen-Dashboard (Waveshare 7")
+- **Hardware:** Waveshare ESP32-S3-Touch-LCD-7 (800 × 480)
+- **Video:** TODO – Link zum Video ergänzen
+- **Files:** [`kuechen-dashboard/`](kuechen-dashboard/)
+- **ESPHome:** 2026.9 validiert
+- **Beschreibung:** LVGL-Küchen-Dashboard mit Uhr, Temperaturen, Sonnenzeiten, Kalender bzw. laufender Musik, Voice-PE-Timer und Müll-Abholtermin. Alle Entitäten und der Standort werden über Substitutions angepasst; die YAML lässt sich direkt in ESPHome importieren.
+
 ### E-Ink Display (Xiao 7.5")
 - **Hardware:** Seeed Studio Xiao ESP32 + 7.5" E-Paper Display
 - **Video:** https://youtu.be/-BWdE85hcqw
