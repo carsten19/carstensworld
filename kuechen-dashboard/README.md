@@ -56,7 +56,26 @@ Weitere optionale Punkte in der YAML:
 ## Benötigte Helfer in Home Assistant
 
 ### Müll-Abholtermin
-Mit der HACS-Integration [Waste Collection Schedule](https://github.com/mampfes/hacs_waste_collection_schedule). Der Text muss mit „Heute“ oder „Morgen“ beginnen, damit die Kachel rot bzw. hell eingefärbt wird:
+Der Text muss mit „Heute“ oder „Morgen“ beginnen, damit die Kachel rot bzw. hell eingefärbt wird. Zwei Wege:
+
+**Weg 1 – Kalender (so wie im Video):** Die Abfuhrtermine deiner Gemeinde als Kalenderdatei (ICS) in einen eigenen Kalender importieren, z. B. einen Google-Kalender „Trash“, und in Home Assistant einbinden. Ein Template-Sensor macht daraus einen kurzen Text:
+
+```yaml
+template:
+  - sensor:
+      - name: Müll nächste Abholung
+        state: >-
+          {% set start = as_datetime(state_attr('calendar.trash', 'start_time')) %}
+          {% set text = state_attr('calendar.trash', 'message') %}
+          {% if start is none %}Keine Termine{% else %}
+          {% set tage = (start.date() - now().date()).days %}
+          {% if tage == 0 %}Heute{% elif tage == 1 %}Morgen{% else %}{{ start.strftime('%d.%m.') }}{% endif %} {{ text }}
+          {% endif %}
+```
+
+Sind die Termintitel sehr lang, kannst du `text` hier kürzen, z. B. mit `text | replace('Abfuhr ', '')`.
+
+**Weg 2 – HACS-Integration [Waste Collection Schedule](https://github.com/mampfes/hacs_waste_collection_schedule):** unterstützt viele deutsche Entsorger direkt:
 
 ```yaml
 sensor:
