@@ -42,8 +42,8 @@ Der Sensor nutzt **MQTT statt der ESPHome-API**. So kann er senden und sofort wi
 
 1. Nach dem Aufwachen starten Temperatur- und Akkumessung sofort, parallel zum Thread- und MQTT-Verbindungsaufbau.
 2. Das Skript `finish_cycle` wartet, bis MQTT verbunden ist, beide Messungen vorliegen und der Wachhalte-Sollzustand empfangen wurde (maximal 60 s).
-3. Danach geht der Sensor in den Deep Sleep. Bei einem Timeout schläft er sicherheitshalber trotzdem.
-4. Diagnose-Sensoren: **Time to Connected** (Sekunden bis MQTT verbunden) und **Time to Finish** (Sekunden bis zum Einschlafen).
+3. Bei `OFF` lässt eine kooperative Sendepause von einer Sekunde ESPHome die MQTT-Verarbeitung fortsetzen; danach geht der Sensor in den Deep Sleep. Bei `ON` bleibt er für Wartung wach. Bei einem Timeout schläft er sicherheitshalber trotzdem. Die Sendepause ist keine Empfangsquittung des Brokers.
+4. Diagnose-Sensoren: **Time to Connected** (Sekunden bis MQTT verbunden) und **Time to Finish** (Sekunden bis Messung und Steuerzustand bereit sind, vor der abschließenden Sendepause).
 
 ## Wartungsmodus (OTA)
 
@@ -62,3 +62,13 @@ Wichtig: Der Sensor wartet bei jedem Aufwachen auf diesen Sollzustand. Die Nachr
 
 - `openthread` → `device_type: MTD`: Der Sensor arbeitet als Endgerät, nicht als Router.
 - `network` → `enable_ipv6: true` ist für Thread erforderlich.
+
+## Fehlerkorrektur vom 25.10.2026
+
+Wer eine frühere Fassung übernommen hat, sollte die YAML aktualisieren und neu flashen:
+
+- `control_received` wird ausschließlich beim tatsächlichen MQTT-Empfang von `ON` oder `OFF` gesetzt. Der Template-Schalter führt beim Start standardmäßig seine OFF-Aktion aus; diese darf keinen empfangenen MQTT-Befehl vortäuschen. Andernfalls kann der Sensor schlafen gehen, bevor ein retained `ON` verarbeitet wird, und sich nicht zuverlässig für OTA wachhalten lassen.
+- Die aktive `delay: 1s` vor Deep Sleep bleibt erhalten. Messwerte und Diagnosewerte lokal zu publizieren oder `mqtt.connected` zu prüfen, bestätigt noch keine Zustellung beim Broker.
+- **Time to Finish** bleibt als Diagnosewert erhalten; er misst nicht die zusätzliche Sendepause.
+
+Die Konfiguration wurde mit dem ESPHome-2026.9.1-Validator geprüft. Ein Hardware-/OTA-Test dieser korrigierten Fassung ist damit nicht ersetzt. Falls die alte Firmware sich nicht mehr wachhalten lässt, kann ein USB-Flash zur Wiederherstellung nötig sein.

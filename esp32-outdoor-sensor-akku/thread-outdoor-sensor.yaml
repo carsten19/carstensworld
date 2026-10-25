@@ -27,11 +27,17 @@ mqtt:
       qos: 1
       payload: "ON"
       then:
+        - globals.set:
+            id: control_received
+            value: 'true'
         - switch.turn_on: switch_keep_awake
     - topic: "helper/thread_outdoor_sensor/keep_awake"
       qos: 1
       payload: "OFF"
       then:
+        - globals.set:
+            id: control_received
+            value: 'true'
         - switch.turn_off: switch_keep_awake
   # Geburt-/Will-Themen zur Kompatibilität unverändert.
   birth_message:
@@ -89,9 +95,6 @@ switch:
     turn_on_action:
       then:
         - globals.set:
-            id: control_received
-            value: 'true'
-        - globals.set:
             id: prevent_sleep_mode
             value: 'true'
         # Sofort gegen den automatischen 60-s-Schlaf absichern.
@@ -100,9 +103,6 @@ switch:
         - logger.log: "Wachhalten bestätigt: ON; OTA möglich"
     turn_off_action:
       then:
-        - globals.set:
-            id: control_received
-            value: 'true'
         - globals.set:
             id: prevent_sleep_mode
             value: 'false'
@@ -141,9 +141,8 @@ script:
                   - sensor.template.publish:
                       id: finish_result
                       state: !lambda 'return millis() / 1000.0;'
-                  # Kooperativ statt delay(1000) im on_shutdown:
-                  # ESPHome kann weiter Sensor-/MQTT-Callbacks abarbeiten.
-                  # - delay: 1s
+                  # MQTT-Verarbeitung vor Deep Sleep weiterlaufen lassen.
+                  - delay: 1s
                   # ON stoppt das Skript bereits im Schalter-Handler.
                   - if:
                       condition:
