@@ -1,0 +1,236 @@
+esphome:
+  name: thread-outdoor-sensor
+  friendly_name: Thread Outdoor Sensor
+  name_add_mac_suffix: false
+  on_boot:
+    priority: -100
+    then:
+      # Messung schon während des Netzwerkaufbaus starten.
+      - component.update: batt_voltage
+      - component.update: temperature
+      - script.execute: finish_cycle
+
+esp32:
+  variant: esp32c6
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+mqtt:
+  broker: !secret mqtt_broker
+  port: 1883
+  discovery_unique_id_generator: mac
+  on_message:
+    - topic: "helper/thread_outdoor_sensor/keep_awake"
+      qos: 1
+      payload: "ON"
+      then:
+        - switch.turn_on: switch_keep_awake
+    - topic: "helper/thread_outdoor_sensor/keep_awake"
+      qos: 1
+      payload: "OFF"
+      then:
+        - switch.turn_off: switch_keep_awake
+  # Geburt-/Will-Themen zur Kompatibilität unverändert.
+  birth_message:
+    topic: myavailability/birth
+    payload: online
+  will_message:
+    topic: myavailability/will
+    payload: offline
+  on_connect:
+    then:
+      - logger.log: "MQTT verbunden; warte auf Wachhalte-Sollzustand"
+      - if:
+          condition:
+            lambda: 'return std::isnan(id(api_connect_result).state);'
+          then:
+            - sensor.template.publish:
+                id: api_connect_result
+                state: !lambda 'return millis() / 1000.0;'
+      - script.execute: finish_cycle
+  on_disconnect:
+    then:
+      # Pro Verbindung den Sollzustand neu bestätigen lassen.
+      - globals.set:
+          id: control_received
+          value: 'false'
+      - script.execute: finish_cycle
+
+# OTA bleibt unverändert verfügbar, wenn ON empfangen wurde.
+ota:
+  - platform: esphome
+
+globals:
+  - id: prevent_sleep_mode
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: control_received
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: temperature_measured
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: battery_measured
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+switch:
+  - platform: template
+    name: "Radio Always On"
+    id: switch_keep_awake
+    optimistic: true
+    turn_on_action:
+      then:
+        - globals.set:
+            id: control_received
+            value: 'true'
+        - globals.set:
+            id: prevent_sleep_mode
+            value: 'true'
+        # Sofort gegen den automatischen 60-s-Schlaf absichern.
+        - deep_sleep.prevent: deep_sleep_1
+        - script.stop: finish_cycle
+        - logger.log: "Wachhalten bestätigt: ON; OTA möglich"
+    turn_off_action:
+      then:
+        - globals.set:
+            id: control_received
+            value: 'true'
+        - globals.set:
+            id: prevent_sleep_mode
+            value: 'false'
+        # NICHT sofort schlafen: erst Messung und Sendepause abschließen.
+        - script.execute: finish_cycle
+
+script:
+  - id: finish_cycle
+    mode: restart
+    then:
+      - wait_until:
+          condition:
+            and:
+              - mqtt.connected:
+              - lambda: |-
+                  return id(control_received)
+                      && id(temperature_measured)
+                      && id(battery_measured);
+          timeout: 60s
+      - if:
+          condition:
+            lambda: 'return id(prevent_sleep_mode);'
+          then:
+            - deep_sleep.prevent: deep_sleep_1
+            - logger.log: "Bleibe für Wartung wach"
+          else:
+            - if:
+                condition:
+                  and:
+                    - mqtt.connected:
+                    - lambda: |-
+                        return id(control_received)
+                            && id(temperature_measured)
+                            && id(battery_measured);
+                then:
+                  - sensor.template.publish:
+                      id: finish_result
+                      state: !lambda 'return millis() / 1000.0;'
+                  # Kooperativ statt delay(1000) im on_shutdown:
+                  # ESPHome kann weiter Sensor-/MQTT-Callbacks abarbeiten.
+                  # - delay: 1s
+                  # ON stoppt das Skript bereits im Schalter-Handler.
+                  - if:
+                      condition:
+                        mqtt.connected:
+                      then:
+                        - logger.log: "Messung fertig, OFF bestätigt: Deep Sleep"
+                        - deep_sleep.enter: deep_sleep_1
+                      else:
+                        # on_disconnect startet die Synchronisierung neu.
+                        - logger.log:
+                            level: WARN
+                            format: "MQTT vor dem Schlafen getrennt"
+                else:
+                  - logger.log:
+                      level: WARN
+                      format: "Timeout: Messung oder Steuerzustand fehlt; schlafe sicherheitshalber"
+                  # Explizites enter funktioniert auch nach einem früheren
+                  # prevent (z. B. OFF nach einem langen Wartungsfenster).
+                  - deep_sleep.enter: deep_sleep_1
+
+network:
+  enable_ipv6: true
+
+openthread:
+  tlv: !secret openthread_tlv
+  device_type: MTD
+  # poll_period absichtlich noch nicht geändert: OTA/Rückkanal unverändert.
+
+deep_sleep:
+  id: deep_sleep_1
+  sleep_duration: 20min
+  run_duration: 60s
+
+one_wire:
+  - id: dallas_hub_1
+    platform: gpio
+    pin: GPIO11
+
+sensor:
+  - platform: dallas_temp
+    id: temperature
+    name: "Temperature"
+    # Auflösung unverändert (bisheriger Standard ebenfalls 12 Bit).
+    resolution: 12
+    update_interval: never
+    on_value:
+      then:
+        # Auch ein gemeldeter Messfehler beendet die Messung; bei fehlendem
+        # Sensor ohne Callback verhindert der Timeout endloses Wachbleiben.
+        - globals.set:
+            id: temperature_measured
+            value: 'true'
+
+  - platform: adc
+    id: batt_voltage
+    pin: GPIO4
+    attenuation: auto
+    name: "Battery Voltage"
+    update_interval: never
+    accuracy_decimals: 2
+    on_value:
+      then:
+        - globals.set:
+            id: battery_measured
+            value: 'true'
+
+  - platform: copy
+    source_id: batt_voltage
+    id: batt_level
+    icon: "mdi:battery"
+    name: "Battery Level"
+    unit_of_measurement: '%'
+    accuracy_decimals: 1
+    device_class: battery
+    filters:
+      - calibrate_linear:
+          - 0.85 -> 0
+          - 1.1 -> 100
+
+  - platform: template
+    name: "Time to Connected"
+    id: api_connect_result
+    unit_of_measurement: "s"
+    accuracy_decimals: 1
+
+  - platform: template
+    name: "Time to Finish"
+    id: finish_result
+    unit_of_measurement: "s"
+    accuracy_decimals: 1

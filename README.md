@@ -48,6 +48,13 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 - **ESPHome:** 2026.1.0 oder neuer
 - **Beschreibung:** ESPHome-Konfiguration für einen kompakten IR-Proxy mit Home-Assistant-Actions zum Senden von Pronto-, NEC-, Panasonic- und Sony-IR-Codes.
 
+### ESP32-C6 Outdoor-Sensor mit Akku (Thread + MQTT)
+- **Hardware:** ESP32-C6 (z. B. Seeed Studio XIAO ESP32-C6) + DS18B20 + Akku mit Spannungsteiler
+- **Video:** https://youtu.be/l48ehZmMlDc
+- **Files:** [`esp32-outdoor-sensor-akku/`](esp32-outdoor-sensor-akku/)
+- **ESPHome:** 2026.9.1 validiert
+- **Beschreibung:** Batteriebetriebener Außentemperatur-Sensor mit Deep Sleep (20 min), Thread als Funkweg und MQTT statt ESPHome-API für kurze Wachzeiten. Inklusive Wartungsmodus per MQTT-Topic für OTA-Updates sowie Diagnose-Sensoren für Verbindungs- und Wachzeit.
+
 ### Xiao ESP32-C6 SHTC3 Gehäuse
 - **Hardware:** Seeed Studio Xiao ESP32-C6 + SHTC3 Temperatur-/Feuchtigkeitssensor
 - **Video:** https://youtu.be/xsSsGEaRrT0
