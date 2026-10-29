@@ -4,7 +4,7 @@ ESPHome Beispielkonfiguration für einen M5Stack Atom Echo als Infrarot-Proxy in
 
 ## Video
 
-- YouTube: TODO - Link zum Video ergänzen
+- YouTube: [Home Assistant kann jetzt Infrarot: IR Proxy mit ESPHome ausprobiert](https://youtu.be/94_GbODLIN0)
 
 ## Hardware
 
