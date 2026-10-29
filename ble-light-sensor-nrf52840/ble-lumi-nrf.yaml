@@ -16,7 +16,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/carsten19/esphome-bthome
-      ref: v0.4.0-nrf52
+      ref: v0.4.2-nrf52
     components: [bthome, nrf52_low_power]
 
 nrf52_low_power:

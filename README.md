@@ -8,7 +8,7 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 - **Hardware:** Seeed Studio XIAO nRF52840 + OPT3001
 - **Video:** https://youtu.be/a9gEFRlPrB0
 - **Files:** [`ble-light-sensor-nrf52840/`](ble-light-sensor-nrf52840/)
-- **ESPHome:** 2026.8.1 getestet
+- **ESPHome:** 2026.8.1 getestet, 2026.10.1 kompiliert
 - **Beschreibung:** Batteriebetriebener Helligkeitssensor, der Luxwert, Akkuspannung und Akkustand per BTHome an Home Assistant sendet. Durch deaktiviertes USB/UART und weitere nRF52-Low-Power-Anpassungen wurden am fertigen Aufbau rund 10 µA Ruhestrom gemessen.
 
 ### XIAO ePaper EN04 Wandgehäuse

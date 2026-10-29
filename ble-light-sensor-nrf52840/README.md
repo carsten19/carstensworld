@@ -8,7 +8,7 @@ nicht erforderlich.
 
 ## Video
 
-**TODO:** Link zum Video auf Carsten's World ergänzen.
+[30 Jahre Akkulaufzeit? Dieser ESPHome-Sensor braucht nur 10 µA](https://youtu.be/a9gEFRlPrB0)
 
 ## Gemessener Stromverbrauch
 
@@ -51,11 +51,17 @@ hardwareseitig weiter.
 
 ## Voraussetzungen
 
-- ESPHome **2026.8.1** oder kompatible neuere Version mit nRF52/Zephyr-Support
+- ESPHome **2026.8.1** oder neuer; mit **2026.10.1** kompiliert
 - Home Assistant mit Bluetooth-Adapter oder einem Bluetooth-Proxy in Reichweite
 - der fest referenzierte Fork
   [`carsten19/esphome-bthome`](https://github.com/carsten19/esphome-bthome)
-  in Version `v0.4.0-nrf52`
+  in Version `v0.4.2-nrf52`
+
+Ab ESPHome 2026.10 lädt der Device Builder für nRF52 nur noch die nötigsten
+SDK-Pakete. Ältere Versionen der Komponente brechen auf einer frischen
+Installation deshalb mit `tinycrypt/ccm_mode.h: No such file or directory` ab.
+`v0.4.2-nrf52` behebt das. Nach dem Wechsel der Version einmal
+**Clean Build Files** ausführen.
 
 Das Projekt verwendet keine Secrets, da der Sensor ausschließlich per BLE
 sendet. Die Datei `secrets.example.yaml` dokumentiert das ausdrücklich.
@@ -89,7 +95,7 @@ automatisch und bietet die drei Messwerte als neue Entitäten an.
 
 ## Einstellungen anpassen
 
-- `tx_power`: `v0.4.0-nrf52` setzt diesen Wert tatsächlich am
+- `tx_power`: Ab `v0.4.0-nrf52` setzt diesen Wert tatsächlich am
   nRF52840-Funkcontroller. Die enthaltenen `8` dBm wurden für den Außensensor
   gewählt, weil zwischen Sensor und Bluetooth-Proxy eine Wand liegt. Niedrigere
   Werte sparen während der kurzen Funkimpulse Strom, reduzieren aber die
