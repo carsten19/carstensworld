@@ -4,7 +4,7 @@ ESPHome-Konfiguration für mein Küchen-Dashboard auf dem Waveshare ESP32-S3-Tou
 
 ## Video
 
-- YouTube: TODO – Link zum Video ergänzen
+- YouTube: [Müllabfuhr aufs ESPHome-Display: So kommt jede Info aus Home Assistant drauf](https://youtu.be/0Ee2ARnkhgE)
 - Vorgängervideo zum Dashboard: https://youtu.be/v1UE3SAf5vI
 
 ## Hardware

@@ -25,7 +25,7 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 
 ### Küchen-Dashboard (Waveshare 7")
 - **Hardware:** Waveshare ESP32-S3-Touch-LCD-7 (800 × 480)
-- **Video:** TODO – Link zum Video ergänzen
+- **Video:** https://youtu.be/0Ee2ARnkhgE
 - **Files:** [`kuechen-dashboard/`](kuechen-dashboard/)
 - **ESPHome:** 2026.9 validiert
 - **Beschreibung:** LVGL-Küchen-Dashboard mit Uhr, Temperaturen, Sonnenzeiten, Kalender bzw. laufender Musik, Voice-PE-Timer und Müll-Abholtermin. Alle Entitäten und der Standort werden über Substitutions angepasst; die YAML lässt sich direkt in ESPHome importieren.
