@@ -83,7 +83,9 @@ light:
             if (out > 1.0f) out = 1.0f;
 
             auto call = id(teelicht).turn_on();
-            call.set_rgb(1.0f, 100.0f / 255.0f, 0.0f);
+            // Eingestellte Farbe aus HA übernehmen, nur die Helligkeit flackert.
+            auto &rv = id(teelicht).remote_values;
+            call.set_rgb(rv.get_red(), rv.get_green(), rv.get_blue());
             call.set_brightness(id(teelicht).remote_values.get_brightness() * out);
             call.set_transition_length(0);
             call.set_publish(false);

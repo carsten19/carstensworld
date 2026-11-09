@@ -78,7 +78,7 @@ und Material ab; die Parameter stehen oben in `gehaeuse/source/teelicht.py`.
 ## Einstellungen zum Anpassen
 
 - `name` / `friendly_name` bei mehreren Kerzen je Gerät eindeutig wählen.
-- Kerzenfarbe in `call.set_rgb(...)`, Flackern über die Werte `0.06f`
+- Die Farbe kommt aus Home Assistant und bleibt beim Effekt erhalten. Flackern über die Werte `0.06f`
   (Häufigkeit des Einknickens), `0.35f` (Weichheit) und `0.85f` (Grundhelligkeit).
 - Unterspannungsabschaltung bei `3.3` V im Akkusensor.
 - Akkuteiler `multiply: 2.961` und Kalibrierung `3.20 → 0 %`, `4.14 → 100 %`
