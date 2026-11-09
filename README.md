@@ -11,6 +11,13 @@ Home Assistant und ESPHome Konfigurationen für meine Smart Home Projekte aus de
 - **ESPHome:** 2026.8.1 getestet, 2026.10.1 kompiliert
 - **Beschreibung:** Batteriebetriebener Helligkeitssensor, der Luxwert, Akkuspannung und Akkustand per BTHome an Home Assistant sendet. Durch deaktiviertes USB/UART und weitere nRF52-Low-Power-Anpassungen wurden am fertigen Aufbau rund 10 µA Ruhestrom gemessen.
 
+### Smartes Teelicht mit XIAO nRF52840
+- **Hardware:** Seeed Studio XIAO nRF52840 + RGB-LED + LiPo-Akku + magnetischer Pogo-Pin
+- **Video:** folgt
+- **Files:** [`smartes-teelicht-nrf52840/`](smartes-teelicht-nrf52840/)
+- **ESPHome:** 2026.10.2 kompiliert
+- **Beschreibung:** Akkubetriebenes LED-Teelicht als Thread-Licht in Home Assistant mit Kerzen-Flackereffekt, Unterspannungsabschaltung und magnetischem Ladesockel. Inklusive druckfertigem Gehäuse (STL/STEP) und parametrischer CadQuery-Quelle.
+
 ### XIAO ePaper EN04 Wandgehäuse
 - **Hardware:** Seeed Studio XIAO ePaper Display Board EN04 (nRF52840) + 4,2" Monochrome ePaper + LiPo-Akku
 - **Video:** https://youtu.be/oomAC2TNEEU

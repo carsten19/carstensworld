@@ -1,0 +1,126 @@
+external_components:
+  - source: github://carsten19/esphome-bthome@v0.4.1-nrf52
+    components: [nrf52_low_power]
+
+nrf52_low_power:
+  disable_usb_uart: true
+
+esphome:
+  name: teelicht
+  friendly_name: Teelicht
+  on_boot:
+    - priority: -100
+      then:
+        - lambda: |-
+            App.set_loop_interval(1000);
+
+nrf52:
+  board: xiao_ble
+  dcdc: true
+
+# logger: bewusst deaktiviert (spart Strom)
+
+network:
+  enable_ipv6: true
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+openthread:
+  tlv: !secret openthread_tlv
+  device_type: MTD
+  poll_period: 1s   # Befehle aus HA bis zu 1 s verzögert; für OTA auf 0
+
+output:
+  - platform: zephyr_pwm
+    id: out_r
+    pin: P0.03        # D1, Rot über 330 Ω
+    frequency: 5kHz
+    inverted: true    # gemeinsame Anode: LOW = an
+  - platform: zephyr_pwm
+    id: out_g
+    pin: P0.04        # D4, Grün über 100 Ω
+    frequency: 5kHz
+    inverted: true
+  - platform: zephyr_pwm
+    id: out_b
+    pin: P0.05        # D5, Blau über 100 Ω
+    frequency: 5kHz
+    inverted: true
+
+light:
+  - platform: rgb
+    id: teelicht
+    name: "Teelicht"
+    red: out_r
+    green: out_g
+    blue: out_b
+    default_transition_length: 0s
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_off:
+      - lambda: 'App.set_loop_interval(1000);'
+    on_turn_on:
+      - lambda: 'App.set_loop_interval(16);'
+      - light.control:
+          id: teelicht
+          effect: "Kerze"
+    effects:
+      - lambda:
+          name: "Kerze"
+          update_interval: 50ms
+          lambda: |-
+            // Ruhige Flamme mit weichem Wabern und seltenem kurzem Einknicken.
+            static float level = 0.9f, target = 0.9f;
+            static int hold = 0;
+            auto rnd = []() { return (random_uint32() % 1000) / 1000.0f; };
+            if (--hold <= 0) {
+              if (rnd() < 0.06f) { target = 0.55f + 0.15f * rnd(); hold = 2 + random_uint32() % 3; }
+              else               { target = 0.85f + 0.15f * rnd(); hold = 3 + random_uint32() % 10; }
+            }
+            level += (target - level) * 0.35f;
+            float out = level + (rnd() - 0.5f) * 0.04f;
+            if (out > 1.0f) out = 1.0f;
+
+            auto call = id(teelicht).turn_on();
+            call.set_rgb(1.0f, 100.0f / 255.0f, 0.0f);
+            call.set_brightness(id(teelicht).remote_values.get_brightness() * out);
+            call.set_transition_length(0);
+            call.set_publish(false);
+            call.set_save(false);
+            call.perform();
+
+# Akku
+sensor:
+  - platform: adc
+    pin: P0.31
+    id: battery_voltage
+    name: "Battery Voltage"
+    unit_of_measurement: V
+    device_class: voltage
+    accuracy_decimals: 2
+    update_interval: 5min
+    filters:
+      - multiply: 2.961
+    on_value:
+      - if:
+          condition:
+            lambda: 'return x < 3.3;'
+          then:
+            - light.turn_off: teelicht
+  - platform: copy
+    source_id: battery_voltage
+    name: "Battery Level"
+    unit_of_measurement: "%"
+    device_class: battery
+    accuracy_decimals: 0
+    filters:
+      - calibrate_linear: [3.20 -> 0, 4.14 -> 100]
+      - clamp: {min_value: 1, max_value: 100}
+
+switch:
+  - platform: gpio
+    id: battery_read_enable
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {number: P0.14, inverted: true}
